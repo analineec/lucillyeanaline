@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Chá de Casa Nova — Lucilly & Ana Aline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #F5EFE6;
+    --bg-card:   #FFFFFF;
+    --border:    #E2D8CE;
+    --brown:     #2C1F12;
+    --brown-mid: #5C3D1E;
+    --muted:     #8C7B6A;
+    --gifted-bg: #E8F5E9;
+    --gifted-text:#388E3C;
+    --radius:    14px;
+  }
+
+  body { background: var(--bg); font-family: 'Lato', sans-serif; color: var(--brown); min-height: 100vh; }
+
+  /* HEADER */
+  .header { text-align: center; padding: 52px 20px 36px; border-bottom: 1px solid var(--border); }
+  .header-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+  .header-eyebrow span { margin: 0 8px; }
+  .header h1 { font-family: 'Playfair Display', serif; font-size: clamp(38px, 6vw, 72px); font-weight: 700; line-height: 1.1; margin-bottom: 18px; }
+  .header h1 em { font-style: italic; font-weight: 400; }
+  .header-subtitle { font-size: 15px; font-weight: 300; color: var(--muted); max-width: 420px; margin: 0 auto 32px; line-height: 1.6; }
+  .stats { display: flex; justify-content: center; gap: 48px; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat-number { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .stat-label { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+
+  /* SYNC INDICATOR */
+  .sync-bar {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 8px 20px;
+    background: #FFF8F2;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px; color: var(--muted);
+  }
+  .sync-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #ccc;
+    transition: background .3s;
+  }
+  .sync-dot.syncing { background: #F59E0B; animation: pulse 1s infinite; }
+  .sync-dot.ok      { background: #22C55E; }
+  .sync-dot.error   { background: #EF4444; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* FILTERS */
+  .filters-wrap { position: sticky; top: 0; z-index: 100; background: var(--bg); border-bottom: 1px solid var(--border); padding: 14px 24px; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; max-width: 1300px; margin: 0 auto; }
+  .filter-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 999px; border: 1.5px solid var(--border); background: transparent; font-family: 'Lato', sans-serif; font-size: 13px; font-weight: 700; color: var(--brown-mid); cursor: pointer; transition: all .18s; white-space: nowrap; }
+  .filter-btn:hover { border-color: var(--brown-mid); background: rgba(44,31,18,.05); }
+  .filter-btn.active { background: var(--brown); border-color: var(--brown); color: #fff; }
+
+  /* GRID */
+  .grid-wrap { max-width: 1300px; margin: 36px auto; padding: 0 24px 60px; }
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; }
+  @media (max-width:1200px){ .grid{ grid-template-columns: repeat(4,1fr); } }
+  @media (max-width:900px) { .grid{ grid-template-columns: repeat(3,1fr); } }
+  @media (max-width:620px) { .grid{ grid-template-columns: repeat(2,1fr); } }
+  @media (max-width:380px) { .grid{ grid-template-columns: 1fr; } }
+
+  /* CARD */
+  .card { background: var(--bg-card); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); transition: box-shadow .2s, transform .2s; display: flex; flex-direction: column; }
+  .card:hover { box-shadow: 0 8px 28px rgba(44,31,18,.12); transform: translateY(-2px); }
+  .card.gifted { opacity: .7; }
+  .card-img { width: 100%; aspect-ratio: 4/3; object-fit: cover; background: #E8E0D6; }
+  .card-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .card-category { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .card-name { font-size: 14px; font-weight: 700; color: var(--brown); line-height: 1.35; flex: 1; }
+  .card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; gap: 8px; flex-wrap: wrap; }
+  .card-price { font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 700; white-space: nowrap; }
+
+  .btn-gift {
+    padding: 9px 16px; border-radius: 8px; border: none;
+    background: var(--brown); color: #fff;
+    font-family: 'Lato', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: background .15s, transform .1s, opacity .2s;
+    white-space: nowrap; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-gift:hover { background: var(--brown-mid); }
+  .btn-gift:active { transform: scale(.97); }
+  .btn-gift.loading { opacity: .6; pointer-events: none; }
+  .btn-gift .spinner {
+    width: 12px; height: 12px; border: 2px solid rgba(255,255,255,.4);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin .6s linear infinite; display: none;
+  }
+  .btn-gift.loading .spinner { display: block; }
+  .btn-gift.loading .btn-label { display: none; }
+
+  .btn-gifted { padding: 9px 16px; border-radius: 8px; border: 1.5px solid var(--gifted-text); background: var(--gifted-bg); color: var(--gifted-text); font-family: 'Lato', sans-serif; font-size: 12px; font-weight: 700; white-space: nowrap; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--brown); color: #fff; padding: 14px 28px; border-radius: 999px; font-size: 14px; font-weight: 700; box-shadow: 0 8px 24px rgba(44,31,18,.3); z-index: 600; transition: transform .3s, opacity .3s; opacity: 0; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  /* SCROLL TOP */
+  .scroll-top { position: fixed; bottom: 28px; right: 28px; width: 44px; height: 44px; border-radius: 50%; background: var(--brown); color: #fff; border: none; font-size: 20px; cursor: pointer; box-shadow: 0 4px 16px rgba(44,31,18,.3); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 200; }
+  .scroll-top.visible { opacity: 1; pointer-events: auto; }
+
+  /* NEW GIFT BADGE */
+  @keyframes badgePop { 0%{transform:scale(0)} 70%{transform:scale(1.2)} 100%{transform:scale(1)} }
+  .new-gift-badge { display:none; position:absolute; top:10px; right:10px; background:#E53935; color:#fff; font-size:10px; font-weight:700; padding:3px 8px; border-radius:999px; letter-spacing:.05em; animation: badgePop .4s ease; }
+  .card { position: relative; }
+  .card.just-gifted .new-gift-badge { display:block; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <p class="header-eyebrow"><span>✦</span> Chá de Casa Nova <span>✦</span></p>
+  <h1>Lucilly <em>&</em><br>Ana Aline</h1>
+  <p class="header-subtitle">Escolha um presente para nos ajudar a montar nosso lar com muito amor 🏠</p>
+  <div class="stats">
+    <div class="stat"><div class="stat-number" id="stat-total">200</div><div class="stat-label">itens no total</div></div>
+    <div class="stat"><div class="stat-number" id="stat-available">200</div><div class="stat-label">disponíveis</div></div>
+    <div class="stat"><div class="stat-number" id="stat-gifted">0</div><div class="stat-label">já presenteados</div></div>
+  </div>
+</header>
+
+<!-- SYNC BAR -->
+<div class="sync-bar">
+  <div class="sync-dot" id="sync-dot"></div>
+  <span id="sync-label">Verificando presentes...</span>
+</div>
+
+<!-- FILTERS -->
+<nav class="filters-wrap">
+  <div class="filters" id="filters"></div>
+</nav>
+
+<!-- GRID -->
+<main class="grid-wrap">
+  <div class="grid" id="grid"></div>
+</main>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- SCROLL TOP -->
+<button class="scroll-top" id="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+/* ══════════════════════════════════════════════════
+   ⚙️  CONFIG — ajuste conforme seu backend
+   ══════════════════════════════════════════════════ */
+const CONFIG = {
+  // Endpoint para abrir o checkout de um item:
+  // Receberá POST { id, name, price, cat } e deve retornar { checkout_url: "https://..." }
+  CHECKOUT_ENDPOINT: "/api/checkout",
+
+  // Endpoint para buscar quais IDs já foram pagos:
+  // Deve retornar { gifted_ids: [1, 5, 12, ...] }
+  STATUS_ENDPOINT: "/api/gifted",
+
+  // Intervalo de polling em milissegundos (padrão 10s)
+  POLL_INTERVAL_MS: 10_000,
+
+  // Se true, abre o checkout em nova aba; se false, redireciona na mesma
+  OPEN_IN_NEW_TAB: true,
+};
+/* ══════════════════════════════════════════════════ */
+
+
+/* ── PRODUTOS ── */
+const PRODUCTS = [
+  {id:1,  name:"Air fryer compacta",                price:250, cat:"Cozinha"},
+  {id:2,  name:"Cafeteira elétrica",                price:180, cat:"Cozinha"},
+  {id:3,  name:"Sanduicheira elétrica",             price:140, cat:"Cozinha"},
+  {id:4,  name:"Chaleira elétrica",                 price:160, cat:"Cozinha"},
+  {id:5,  name:"Liquidificador",                    price:220, cat:"Cozinha"},
+  {id:6,  name:"Mixer portátil",                    price:100, cat:"Cozinha"},
+  {id:7,  name:"Torradeira",                        price:150, cat:"Cozinha"},
+  {id:8,  name:"Grill elétrico",                    price:250, cat:"Cozinha"},
+  {id:9,  name:"Panela de pressão elétrica",        price:250, cat:"Cozinha"},
+  {id:10, name:"Panela elétrica de arroz",          price:250, cat:"Cozinha"},
+  {id:11, name:"Forno elétrico compacto",           price:300, cat:"Cozinha"},
+  {id:12, name:"Purificador de água",               price:300, cat:"Cozinha"},
+  {id:13, name:"Espremedor de frutas elétrico",     price:160, cat:"Cozinha"},
+  {id:14, name:"Batedeira portátil",                price:220, cat:"Cozinha"},
+  {id:15, name:"Micro-ondas compacto",              price:300, cat:"Cozinha"},
+  {id:16, name:"Processador de alimentos compacto", price:280, cat:"Cozinha"},
+  {id:17, name:"Fritadeira sem óleo oven",          price:300, cat:"Cozinha"},
+  {id:18, name:"Jogo de panelas antiaderente",      price:300, cat:"Cozinha"},
+  {id:19, name:"Frigideira wok",                    price:180, cat:"Cozinha"},
+  {id:20, name:"Panela de pressão tradicional",     price:220, cat:"Cozinha"},
+  {id:21, name:"Panela funda grande",               price:150, cat:"Cozinha"},
+  {id:22, name:"Assadeira de vidro",                price:60,  cat:"Cozinha"},
+  {id:23, name:"Forma para bolo desmontável",       price:50,  cat:"Cozinha"},
+  {id:24, name:"Forma de pizza antiaderente",       price:50,  cat:"Cozinha"},
+  {id:25, name:"Jogo de travessas de vidro",        price:180, cat:"Cozinha"},
+  {id:26, name:"Conjunto de potes herméticos",      price:100, cat:"Cozinha"},
+  {id:27, name:"Faqueiro inox completo",            price:300, cat:"Cozinha"},
+  {id:28, name:"Conjunto de facas profissionais",   price:280, cat:"Cozinha"},
+  {id:29, name:"Tábua de corte em bambu",           price:50,  cat:"Cozinha"},
+  {id:30, name:"Escorredor de louças inox",         price:180, cat:"Cozinha"},
+  {id:31, name:"Porta-temperos giratório",          price:120, cat:"Cozinha"},
+  {id:32, name:"Lixeira inox para cozinha",         price:250, cat:"Cozinha"},
+  {id:33, name:"Kit utensílios de silicone",        price:100, cat:"Cozinha"},
+  {id:34, name:"Pegador de massa inox",             price:50,  cat:"Cozinha"},
+  {id:35, name:"Descascador de legumes premium",    price:50,  cat:"Cozinha"},
+  {id:36, name:"Ralador multifuncional",            price:50,  cat:"Cozinha"},
+  {id:37, name:"Cortador de pizza inox",            price:50,  cat:"Cozinha"},
+  {id:38, name:"Concha inox reforçada",             price:50,  cat:"Cozinha"},
+  {id:39, name:"Espátula culinária profissional",   price:50,  cat:"Cozinha"},
+  {id:40, name:"Jarra de vidro para suco",          price:50,  cat:"Cozinha"},
+  {id:41, name:"Kit bowls de vidro",                price:130, cat:"Cozinha"},
+  {id:42, name:"Aparelho de jantar completo",       price:300, cat:"Cozinha"},
+  {id:43, name:"Jogo americano elegante",           price:90,  cat:"Cozinha"},
+  {id:44, name:"Toalha de mesa impermeável",        price:100, cat:"Cozinha"},
+  {id:45, name:"Porta-guardanapos decorativo",      price:60,  cat:"Cozinha"},
+  {id:46, name:"Suporte para papel toalha",         price:50,  cat:"Cozinha"},
+  {id:47, name:"Kit copos de vidro",                price:120, cat:"Cozinha"},
+  {id:48, name:"Jogo de taças para vinho",          price:220, cat:"Cozinha"},
+  {id:49, name:"Kit canecas cerâmica",              price:110, cat:"Cozinha"},
+  {id:50, name:"Garrafa térmica inox",              price:150, cat:"Cozinha"},
+  {id:51, name:"Bandeja decorativa",                price:100, cat:"Cozinha"},
+  {id:52, name:"Balança digital de cozinha",        price:50,  cat:"Cozinha"},
+  {id:53, name:"Cuscuzeira inox",                   price:130, cat:"Cozinha"},
+  {id:54, name:"Suporte para tampas de panela",     price:50,  cat:"Cozinha"},
+  {id:55, name:"Porta-detergente e esponja",        price:50,  cat:"Cozinha"},
+  {id:56, name:"Kit potes para mantimentos",        price:160, cat:"Cozinha"},
+  {id:57, name:"Escorredor de pratos duplo",        price:180, cat:"Cozinha"},
+  {id:58, name:"Cooktop elétrico portátil",         price:300, cat:"Cozinha"},
+  {id:59, name:"Adega compacta",                    price:280, cat:"Cozinha"},
+  {id:60, name:"Máquina de suco elétrica",          price:300, cat:"Cozinha"},
+  {id:61, name:"Paneleiro de cozinha",              price:220, cat:"Cozinha"},
+  {id:62, name:"Panela elétrica multifuncional",    price:300, cat:"Cozinha"},
+  {id:63, name:"Pipoqueira elétrica",               price:180, cat:"Cozinha"},
+  {id:64, name:"Escorredor de arroz inox",          price:60,  cat:"Cozinha"},
+  {id:65, name:"Kit churrasco inox",                price:250, cat:"Cozinha"},
+  {id:66, name:"Tábua churrasco madeira",           price:120, cat:"Cozinha"},
+  {id:67, name:"Conjunto de panelas de vidro",      price:300, cat:"Cozinha"},
+  {id:68, name:"Frigideira grill dupla",            price:180, cat:"Cozinha"},
+  {id:69, name:"Escorredor de macarrão inox",       price:80,  cat:"Cozinha"},
+  {id:70, name:"Torre organizadora cozinha",        price:250, cat:"Cozinha"},
+  {id:71, name:"Lava-louças portátil",              price:300, cat:"Cozinha"},
+  {id:72, name:"Churrasqueira elétrica portátil",   price:300, cat:"Cozinha"},
+  {id:73, name:"Conjunto de panelas gourmet",       price:300, cat:"Cozinha"},
+  {id:74, name:"Fondue elétrico",                   price:220, cat:"Cozinha"},
+  {id:75, name:"Máquina de crepe",                  price:180, cat:"Cozinha"},
+  {id:76, name:"Conjunto refratários cerâmica",     price:250, cat:"Cozinha"},
+  {id:77, name:"Kit formas air fryer",              price:60,  cat:"Cozinha"},
+  {id:78, name:"Escorredor de alimentos retrátil",  price:50,  cat:"Cozinha"},
+  {id:79, name:"Cuscuzeira elétrica",               price:250, cat:"Cozinha"},
+  {id:80, name:"Porta-frios hermético",             price:50,  cat:"Cozinha"},
+  {id:81, name:"Suporte para xícaras suspenso",     price:60,  cat:"Cozinha"},
+  {id:82, name:"Porta-cápsulas café",               price:90,  cat:"Cozinha"},
+  {id:83, name:"Centrífuga de frutas",              price:300, cat:"Cozinha"},
+  {id:84, name:"Kit assadeiras vidro",              price:180, cat:"Cozinha"},
+  {id:85, name:"Jogo de petisqueiras",              price:130, cat:"Cozinha"},
+  {id:86, name:"Máquina seladora a vácuo",          price:300, cat:"Cozinha"},
+  {id:87, name:"Panela de ferro fundido",           price:250, cat:"Cozinha"},
+  {id:88, name:"Chapa grill ferro",                 price:180, cat:"Cozinha"},
+  {id:89, name:"Kit fondue cerâmica",               price:140, cat:"Cozinha"},
+  {id:90, name:"Jogo de sousplat elegante",         price:180, cat:"Cozinha"},
+  {id:91, name:"Kit assadeiras antiaderentes",      price:160, cat:"Cozinha"},
+  {id:92, name:"Escorredor de saladas manual",      price:50,  cat:"Cozinha"},
+  {id:93, name:"Adega de mesa compacta",            price:220, cat:"Cozinha"},
+  {id:94, name:"Cuscuzeira nordestina alumínio",    price:90,  cat:"Cozinha"},
+  {id:95, name:"Sorveteira elétrica compacta",      price:240, cat:"Cozinha"},
+  {id:96, name:"Máquina algodão doce",              price:180, cat:"Cozinha"},
+  {id:97, name:"Pedra para pizza refratária",       price:80,  cat:"Cozinha"},
+  {id:98, name:"Suporte magnético para facas",      price:70,  cat:"Cozinha"},
+  {id:99,  name:"Centro de mesa decorativo",        price:180, cat:"Sala"},
+  {id:100, name:"Relógio de parede moderno",        price:150, cat:"Sala"},
+  {id:101, name:"Luminária de mesa LED",            price:120, cat:"Sala"},
+  {id:102, name:"Abajur decorativo",                price:170, cat:"Sala"},
+  {id:103, name:"Fita LED decorativa",              price:90,  cat:"Sala"},
+  {id:104, name:"Espelho decorativo sala",          price:300, cat:"Sala"},
+  {id:105, name:"Quadro decorativo grande",         price:250, cat:"Sala"},
+  {id:106, name:"Manta decorativa sofá",            price:130, cat:"Sala"},
+  {id:107, name:"Almofadas decorativas",            price:120, cat:"Sala"},
+  {id:108, name:"Painel para TV",                   price:280, cat:"Sala"},
+  {id:109, name:"Mesa lateral pequena",             price:220, cat:"Sala"},
+  {id:110, name:"Estante organizadora",             price:250, cat:"Sala"},
+  {id:111, name:"Tapete para sala",                 price:300, cat:"Sala"},
+  {id:112, name:"Capa para sofá",                   price:180, cat:"Sala"},
+  {id:113, name:"Suporte para plantas",             price:140, cat:"Sala"},
+  {id:114, name:"Vasos decorativos",                price:160, cat:"Sala"},
+  {id:115, name:"Mesa lateral decorativa",          price:280, cat:"Sala"},
+  {id:116, name:"Poltrona decorativa compacta",     price:300, cat:"Sala"},
+  {id:117, name:"Aparador compacto",                price:300, cat:"Sala"},
+  {id:118, name:"Luminária de piso",                price:300, cat:"Sala"},
+  {id:119, name:"Espelho corpo inteiro",            price:300, cat:"Sala"},
+  {id:120, name:"Aparador de livros decorativo",    price:150, cat:"Sala"},
+  {id:121, name:"Kit velas decorativas luxo",       price:120, cat:"Sala"},
+  {id:122, name:"Cortina blackout quarto",          price:220, cat:"Quarto"},
+  {id:123, name:"Jogo de cama queen",               price:250, cat:"Quarto"},
+  {id:124, name:"Edredom casal",                    price:280, cat:"Quarto"},
+  {id:125, name:"Kit fronhas premium",              price:50,  cat:"Quarto"},
+  {id:126, name:"Travesseiro viscoelástico",        price:180, cat:"Quarto"},
+  {id:127, name:"Protetor de colchão impermeável",  price:140, cat:"Quarto"},
+  {id:128, name:"Cabeceira estofada casal",         price:300, cat:"Quarto"},
+  {id:129, name:"Mesa de cabeceira",                price:300, cat:"Quarto"},
+  {id:130, name:"Puff baú premium",                 price:250, cat:"Quarto"},
+  {id:131, name:"Jogo de travesseiros premium",     price:220, cat:"Quarto"},
+  {id:132, name:"Cabeceira box simples",            price:220, cat:"Quarto"},
+  {id:133, name:"Jogo de lençóis casal premium",   price:300, cat:"Quarto"},
+  {id:134, name:"Arara organizadora premium",       price:200, cat:"Quarto"},
+  {id:135, name:"Cabideiro de chão",                price:200, cat:"Quarto"},
+  {id:136, name:"Banco sapateira estofado",         price:300, cat:"Quarto"},
+  {id:137, name:"Kit cabides de veludo",            price:50,  cat:"Quarto"},
+  {id:138, name:"Sapateira compacta",               price:200, cat:"Quarto"},
+  {id:139, name:"Sapateira grande",                 price:300, cat:"Quarto"},
+  {id:140, name:"Porta-joias espelhado",            price:140, cat:"Quarto"},
+  {id:141, name:"Mancebo cabideiro madeira",        price:200, cat:"Quarto"},
+  {id:142, name:"Espelho de mesa camarim",          price:200, cat:"Banheiro"},
+  {id:143, name:"Kit banheiro em bambu",            price:180, cat:"Banheiro"},
+  {id:144, name:"Jogo de toalhas banho",            price:220, cat:"Banheiro"},
+  {id:145, name:"Tapete antiderrapante banheiro",   price:70,  cat:"Banheiro"},
+  {id:146, name:"Cortina box banheiro",             price:50,  cat:"Banheiro"},
+  {id:147, name:"Porta-shampoo para box",           price:50,  cat:"Banheiro"},
+  {id:148, name:"Suporte toalha inox",              price:50,  cat:"Banheiro"},
+  {id:149, name:"Lixeira banheiro inox",            price:120, cat:"Banheiro"},
+  {id:150, name:"Escova sanitária premium",         price:50,  cat:"Banheiro"},
+  {id:151, name:"Dispenser sabonete líquido",       price:70,  cat:"Banheiro"},
+  {id:152, name:"Kit acessórios banheiro",          price:150, cat:"Banheiro"},
+  {id:153, name:"Aquecedor portátil",               price:280, cat:"Banheiro"},
+  {id:154, name:"Kit toalhas rosto premium",        price:90,  cat:"Banheiro"},
+  {id:155, name:"Porta-escovas de dente",           price:50,  cat:"Banheiro"},
+  {id:156, name:"Toalheiro elétrico compacto",      price:300, cat:"Banheiro"},
+  {id:157, name:"Aspirador de pó portátil",         price:250, cat:"Lavanderia"},
+  {id:158, name:"Ventilador de mesa",               price:180, cat:"Lavanderia"},
+  {id:159, name:"Ferro de passar roupa",            price:170, cat:"Lavanderia"},
+  {id:160, name:"Tapete antiderrapante cozinha",    price:90,  cat:"Lavanderia"},
+  {id:161, name:"Cortina para cozinha",             price:130, cat:"Lavanderia"},
+  {id:162, name:"Escada dobrável doméstica",        price:220, cat:"Lavanderia"},
+  {id:163, name:"Cesto de roupas dobrável",         price:110, cat:"Lavanderia"},
+  {id:164, name:"Varal de chão retrátil",           price:170, cat:"Lavanderia"},
+  {id:165, name:"Kit prendedores reforçados",       price:50,  cat:"Lavanderia"},
+  {id:166, name:"Tábua de passar roupa",            price:190, cat:"Lavanderia"},
+  {id:167, name:"Escova giratória elétrica",        price:180, cat:"Lavanderia"},
+  {id:168, name:"Kit baldes organizadores",         price:120, cat:"Lavanderia"},
+  {id:169, name:"Rodo inox premium",                price:90,  cat:"Lavanderia"},
+  {id:170, name:"Mop giratório",                    price:180, cat:"Lavanderia"},
+  {id:171, name:"Kit panos microfibra",             price:60,  cat:"Lavanderia"},
+  {id:172, name:"Aspirador robô básico",            price:300, cat:"Lavanderia"},
+  {id:173, name:"Lavadora de alta pressão compacta",price:300, cat:"Lavanderia"},
+  {id:174, name:"Aspirador vertical",               price:300, cat:"Lavanderia"},
+  {id:175, name:"Lavadora portátil",                price:300, cat:"Lavanderia"},
+  {id:176, name:"Escova elétrica de limpeza",       price:180, cat:"Lavanderia"},
+  {id:177, name:"Porta-chaves decorativo",          price:60,  cat:"Organização"},
+  {id:178, name:"Lanterna recarregável",            price:120, cat:"Organização"},
+  {id:179, name:"Extensão elétrica premium",        price:80,  cat:"Organização"},
+  {id:180, name:"Lâmpada smart Wi-Fi",              price:90,  cat:"Organização"},
+  {id:181, name:"Suporte articulado TV",            price:180, cat:"Organização"},
+  {id:182, name:"Cadeira escritório compacta",      price:300, cat:"Organização"},
+  {id:183, name:"Frigobar mini",                    price:300, cat:"Organização"},
+  {id:184, name:"Climatizador de ar",               price:300, cat:"Organização"},
+  {id:185, name:"Mochila térmica",                  price:180, cat:"Organização"},
+  {id:186, name:"Agenda planner sofisticada",       price:80,  cat:"Organização"},
+  {id:187, name:"Caixa térmica compacta",           price:220, cat:"Organização"},
+  {id:188, name:"Guarda-sol articulado",            price:300, cat:"Organização"},
+  {id:189, name:"Kit jardinagem completo",          price:180, cat:"Organização"},
+  {id:190, name:"Mangueira retrátil jardim",        price:220, cat:"Organização"},
+  {id:191, name:"Regador decorativo",               price:70,  cat:"Organização"},
+  {id:192, name:"Cristaleira compacta",             price:300, cat:"Organização"},
+  {id:193, name:"Kit picnic completo",              price:250, cat:"Organização"},
+  {id:194, name:"Kit ferramentas domésticas",       price:300, cat:"Organização"},
+  {id:195, name:"Furadeira doméstica",              price:300, cat:"Organização"},
+  {id:196, name:"Maleta de ferramentas",            price:220, cat:"Organização"},
+  {id:197, name:"Nicho organizador cozinha",        price:200, cat:"Organização"},
+  {id:198, name:"Porta-retratos decorativo",        price:70,  cat:"Organização"},
+  {id:199, name:"Mesa de centro decorativa",        price:280, cat:"Organização"},
+  {id:200, name:"Cachepot decorativo premium",      price:120, cat:"Organização"},
+];
+
+/* ── IMAGENS ── */
+const IMG_POOLS = {
+  "Cozinha":     ["1556909114-f6e7ad7d3136","1551218808-5a823df9f893","1565299624946-b28f40a0ae38",
+                  "1556905665-b3a0517b8b0c","1514190051997-0f6f39ca5cde","1547592180-85f173990554",
+                  "1565299585323-38d6b0865b47","1484723091739-30990a9bb2bd","1590779033100-9f60a05a1234",
+                  "1556909172-8c2f1b2d7e52","1558618666-fcd25c85cd64","1563453392212-326f5e854473"],
+  "Sala":        ["1555041469-db61040b2793","1583847268-bb522a938037","1586023492125-27b2c045efd3",
+                  "1567225477277-39827e2bfe3b","1524758631624-e2822132143d","1560448204-603b3090a44b"],
+  "Quarto":      ["1540518614846-7aded73a2869","1616594039964-ae9021a400a0","1505693314120-0d443867891c",
+                  "1560448205-4d9b3e6bb6db","1522771739844-6a9f6a5f1060","1617325247935-b651a4df2a1d"],
+  "Banheiro":    ["1552321554-5fffe8ca57ef","1620626011761-47a37a821af3","1584622650111-993a426fbf0a",
+                  "1552321554-5fffe8ca57ef","1620626011761-47a37a821af3","1584622650111-993a426fbf0a"],
+  "Lavanderia":  ["1558618666-fcd25c85cd64","1563453392212-326f5e854473","1545173168-9f1f6498b4c1",
+                  "1558618666-fcd25c85cd64","1563453392212-326f5e854473","1545173168-9f1f6498b4c1"],
+  "Organização": ["1558618047-3c8c76ca7d01","1586023492125-27b2c045efd3","1582058091522-381e2b9fffff",
+                  "1558618047-3c8c76ca7d01","1586023492125-27b2c045efd3","1582058091522-381e2b9fffff"],
+};
+function imgUrl(p) {
+  const pool = IMG_POOLS[p.cat] || IMG_POOLS["Cozinha"];
+  return `https://images.unsplash.com/photo-${pool[(p.id-1) % pool.length]}?w=400&h=300&fit=crop&auto=format`;
+}
+
+/* ── STATE ── */
+let giftedIds    = new Set();   // preenchido pelo polling
+let activeFilter = "Todos";
+let pollTimer    = null;
+
+const CATEGORIES = [
+  {key:"Todos",       emoji:"🏠"},
+  {key:"Cozinha",     emoji:"🍳"},
+  {key:"Sala",        emoji:"🛋️"},
+  {key:"Quarto",      emoji:"🛏️"},
+  {key:"Banheiro",    emoji:"🚿"},
+  {key:"Lavanderia",  emoji:"🧺"},
+  {key:"Organização", emoji:"🔧"},
+];
+
+/* ══════════════════════════════════════════════════
+   🔁  POLLING — busca status a cada POLL_INTERVAL_MS
+   ══════════════════════════════════════════════════ */
+async function fetchGiftedStatus() {
+  setSyncState("syncing", "Atualizando lista...");
+  try {
+    const res  = await fetch(CONFIG.STATUS_ENDPOINT);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    // data.gifted_ids = array de IDs já presenteados
+    const incoming = new Set((data.gifted_ids || []).map(Number));
+
+    // Detecta novos presenteados desde o último ciclo
+    const newlyGifted = [...incoming].filter(id => !giftedIds.has(id));
+
+    if (newlyGifted.length > 0) {
+      giftedIds = incoming;
+      renderGrid(newlyGifted);   // passa os novos para animar
+      updateStats();
+      newlyGifted.forEach(id => {
+        const p = PRODUCTS.find(x => x.id === id);
+        if (p) showToast(`🎁 "${p.name}" foi presenteado!`);
+      });
+    } else {
+      giftedIds = incoming;
+      updateStats();
+    }
+
+    const now = new Date().toLocaleTimeString("pt-BR", {hour:"2-digit",minute:"2-digit"});
+    setSyncState("ok", `Atualizado às ${now}`);
+  } catch (err) {
+    console.warn("Polling falhou:", err);
+    setSyncState("error", "Sem conexão — tentando novamente...");
+  }
+}
+
+function startPolling() {
+  fetchGiftedStatus(); // imediato na carga
+  pollTimer = setInterval(fetchGiftedStatus, CONFIG.POLL_INTERVAL_MS);
+}
+
+/* ══════════════════════════════════════════════════
+   🛒  CHECKOUT — chama o backend e redireciona
+   ══════════════════════════════════════════════════ */
+async function openCheckout(id) {
+  const p = PRODUCTS.find(x => x.id === id);
+  if (!p || giftedIds.has(id)) return;
+
+  // Mostra loading no botão
+  const btn = document.querySelector(`#card-${id} .btn-gift`);
+  if (btn) btn.classList.add("loading");
+
+  try {
+    const res = await fetch(CONFIG.CHECKOUT_ENDPOINT, {
+      method:  "POST",
+      headers: {"Content-Type": "application/json"},
+      body:    JSON.stringify({ id: p.id, name: p.name, price: p.price, cat: p.cat }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    // data.checkout_url = URL do checkout gerado pelo backend
+    if (data.checkout_url) {
+      if (CONFIG.OPEN_IN_NEW_TAB) {
+        window.open(data.checkout_url, "_blank");
+      } else {
+        window.location.href = data.checkout_url;
+      }
+    } else {
+      throw new Error("checkout_url não retornado");
+    }
+  } catch (err) {
+    console.error("Erro ao abrir checkout:", err);
+    showToast("❌ Não foi possível abrir o checkout. Tente novamente.");
+  } finally {
+    if (btn) btn.classList.remove("loading");
+  }
+}
+
+/* ── SYNC BAR ── */
+function setSyncState(state, label) {
+  const dot = document.getElementById("sync-dot");
+  const lbl = document.getElementById("sync-label");
+  dot.className = `sync-dot ${state}`;
+  lbl.textContent = label;
+}
+
+/* ── RENDER FILTERS ── */
+function renderFilters() {
+  document.getElementById("filters").innerHTML = CATEGORIES.map(c =>
+    `<button class="filter-btn ${c.key===activeFilter?"active":""}" onclick="setFilter('${c.key}')">
+       <span>${c.emoji}</span> ${c.key}
+     </button>`
+  ).join("");
+}
+
+/* ── RENDER GRID ── */
+function renderGrid(newlyGifted = []) {
+  const list = activeFilter === "Todos"
+    ? PRODUCTS
+    : PRODUCTS.filter(p => p.cat === activeFilter);
+
+  document.getElementById("grid").innerHTML = list.map(p => {
+    const gifted  = giftedIds.has(p.id);
+    const isNew   = newlyGifted.includes(p.id);
+    return `
+      <div class="card ${gifted?"gifted":""} ${isNew?"just-gifted":""}" id="card-${p.id}">
+        ${isNew ? `<span class="new-gift-badge">PRESENTEADO!</span>` : ""}
+        <img class="card-img" src="${imgUrl(p)}" alt="${p.name}" loading="lazy"
+             onerror="this.src='https://images.unsplash.com/photo-1556909172-8c2f1b2d7e52?w=400&h=300&fit=crop'"/>
+        <div class="card-body">
+          <span class="card-category">${p.cat}</span>
+          <span class="card-name">${p.name}</span>
+          <div class="card-footer">
+            <span class="card-price">R$&nbsp;${p.price.toFixed(2).replace(".",",")}</span>
+            ${gifted
+              ? `<span class="btn-gifted">✓ Presenteado</span>`
+              : `<button class="btn-gift" onclick="openCheckout(${p.id})">
+                   <span class="spinner"></span>
+                   <span class="btn-label">Presentear</span>
+                 </button>`
+            }
+          </div>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+/* ── STATS ── */
+function updateStats() {
+  const total  = PRODUCTS.length;
+  const gifted = giftedIds.size;
+  document.getElementById("stat-total").textContent     = total;
+  document.getElementById("stat-available").textContent = total - gifted;
+  document.getElementById("stat-gifted").textContent    = gifted;
+}
+
+/* ── FILTER ── */
+function setFilter(key) {
+  activeFilter = key;
+  renderFilters();
+  renderGrid();
+}
+
+/* ── TOAST ── */
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), 4000);
+}
+
+/* ── SCROLL TOP ── */
+window.addEventListener("scroll", () => {
+  document.getElementById("scroll-top").classList.toggle("visible", window.scrollY > 400);
+});
+
+/* ── INIT ── */
+renderFilters();
+renderGrid();
+updateStats();
+startPolling();
+</script>
+</body>
+</html>

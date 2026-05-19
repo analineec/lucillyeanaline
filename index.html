@@ -402,7 +402,7 @@ function imgUrl(p) {
 }
 
 /* ── STATE ── */
-let giftedIds    = new Set();   // preenchido pelo polling
+let giftedMap    = new Map();   // Map<id, buyer_name> — preenchido pelo polling
 let activeFilter = "Todos";
 let pollTimer    = null;
 
@@ -430,22 +430,24 @@ async function fetchGiftedStatus() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    // data.gifted_ids = array de IDs já presenteados
-    const incoming = new Set((data.gifted_ids || []).map(Number));
+    // data.gifted_items = [{ id: 1, buyer_name: "Maria" }, ...]
+    const items    = data.gifted_items || [];
+    const incoming = new Map(items.map(x => [Number(x.id), x.buyer_name || "Anônimo"]));
 
     // Detecta novos presenteados desde o último ciclo
-    const newlyGifted = [...incoming].filter(id => !giftedIds.has(id));
+    const newlyGifted = [...incoming.keys()].filter(id => !giftedMap.has(id));
 
     if (newlyGifted.length > 0) {
-      giftedIds = incoming;
+      giftedMap = incoming;
       renderGrid(newlyGifted);   // passa os novos para animar
       updateStats();
       newlyGifted.forEach(id => {
         const p = PRODUCTS.find(x => x.id === id);
-        if (p) showToast(`🎁 "${p.name}" foi presenteado!`);
+        const buyer = giftedMap.get(id);
+        if (p) showToast(`🎁 "${p.name}" foi presenteado por ${buyer}!`);
       });
     } else {
-      giftedIds = incoming;
+      giftedMap = incoming;
       updateStats();
     }
 
@@ -461,13 +463,13 @@ function startPolling() {
   fetchGiftedStatus(); // imediato na carga
   pollTimer = setInterval(fetchGiftedStatus, CONFIG.POLL_INTERVAL_MS);
 }
-
+ 
 /* ══════════════════════════════════════════════════
    🛒  CHECKOUT — chama o backend e redireciona
    ══════════════════════════════════════════════════ */
 async function openCheckout(id) {
   const p = PRODUCTS.find(x => x.id === id);
-  if (!p || giftedIds.has(id)) return;
+  if (!p || giftedMap.has(id)) return;
 
   // Mostra loading no botão
   const btn = document.querySelector(`#card-${id} .btn-gift`);
@@ -524,7 +526,8 @@ function renderGrid(newlyGifted = []) {
     : PRODUCTS.filter(p => p.cat === activeFilter);
 
   document.getElementById("grid").innerHTML = list.map(p => {
-    const gifted  = giftedIds.has(p.id);
+    const gifted  = giftedMap.has(p.id);
+    const buyer   = giftedMap.get(p.id);
     const isNew   = newlyGifted.includes(p.id);
     return `
       <div class="card ${gifted?"gifted":""} ${isNew?"just-gifted":""}" id="card-${p.id}">
@@ -537,7 +540,10 @@ function renderGrid(newlyGifted = []) {
           <div class="card-footer">
             <span class="card-price">R$&nbsp;${p.price.toFixed(2).replace(".",",")}</span>
             ${gifted
-              ? `<span class="btn-gifted">✓ Presenteado</span>`
+              ? `<div class="gifted-info">
+                   <span class="btn-gifted">✓ Presenteado</span>
+                   <span class="buyer-name">🎁 ${buyer}</span>
+                 </div>`
               : `<button class="btn-gift" onclick="openCheckout(${p.id})">
                    <span class="spinner"></span>
                    <span class="btn-label">Presentear</span>
@@ -548,11 +554,10 @@ function renderGrid(newlyGifted = []) {
       </div>`;
   }).join("");
 }
-
 /* ── STATS ── */
 function updateStats() {
   const total  = PRODUCTS.length;
-  const gifted = giftedIds.size;
+  const gifted = giftedMap.size;
   document.getElementById("stat-total").textContent     = total;
   document.getElementById("stat-available").textContent = total - gifted;
   document.getElementById("stat-gifted").textContent    = gifted;

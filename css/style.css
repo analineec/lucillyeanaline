@@ -1,4 +1,3 @@
-<style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
@@ -106,4 +105,3 @@
   .new-gift-badge { display:none; position:absolute; top:10px; right:10px; background:#E53935; color:#fff; font-size:10px; font-weight:700; padding:3px 8px; border-radius:999px; letter-spacing:.05em; animation: badgePop .4s ease; }
   .card { position: relative; }
   .card.just-gifted .new-gift-badge { display:block; }
-</style>

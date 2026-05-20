@@ -39,9 +39,11 @@ const CATEGORIES = [
 /* ══════════════════════════════════════════════════
    🖼️  IMAGEM — gera URL consistente por produto
    ══════════════════════════════════════════════════ */
+
 function imgUrl(p) {
-  return `https://picsum.photos/seed/${p.id}/400/300`;
+  return `images/${p.name}.jpg`;
 }
+
 
 /* ══════════════════════════════════════════════════
    🔁  POLLING — busca status a cada POLL_INTERVAL_MS

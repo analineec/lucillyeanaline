@@ -1,4 +1,3 @@
-<script>
 /* ══════════════════════════════════════════════════
    ⚙️  CONFIG — ajuste conforme seu backend
    ══════════════════════════════════════════════════ */
@@ -20,23 +19,29 @@ const CONFIG = {
 /* ══════════════════════════════════════════════════ */
 
 /* ── STATE ── */
-let giftedMap    = new Map();   // Map<id, buyer_name> — preenchido pelo polling
+let giftedSet    = new Set();   // Set<id> — preenchido pelo polling
 let activeFilter = "Todos";
 let pollTimer    = null;
 
 const CATEGORIES = [
-  {key:"Todos",       emoji:"🏠"},
-  {key:"Cozinha",     emoji:"🍳"},
+  {key:"Todos",                emoji:"🏠"},
+  {key:"Cozinha",              emoji:"🍳"},
   {key:"Sala de Estar/Jantar", emoji:"🍽️"},
-  {key:"Quarto",      emoji:"🛏️"},
-  {key:"Banheiro",    emoji:"🚿"},
-  {key:"Lavanderia",  emoji:"🧺"},
-  {key:"Área Externa", emoji:"🪴"},
-  {key:"Escritório", emoji:"🗄️"},
-  {key:"Ferramentas", emoji:"⚒️"},
-  {key:"Decoração", emoji:"🖼️"},
- 
+  {key:"Quarto",               emoji:"🛏️"},
+  {key:"Banheiro",             emoji:"🚿"},
+  {key:"Lavanderia",           emoji:"🧺"},
+  {key:"Área Externa",         emoji:"🪴"},
+  {key:"Escritório",           emoji:"🗄️"},
+  {key:"Ferramentas",          emoji:"⚒️"},
+  {key:"Decoração",            emoji:"🖼️"},
 ];
+
+/* ══════════════════════════════════════════════════
+   🖼️  IMAGEM — gera URL consistente por produto
+   ══════════════════════════════════════════════════ */
+function imgUrl(p) {
+  return `https://picsum.photos/seed/${p.id}/400/300`;
+}
 
 /* ══════════════════════════════════════════════════
    🔁  POLLING — busca status a cada POLL_INTERVAL_MS
@@ -48,28 +53,27 @@ async function fetchGiftedStatus() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    // data.gifted_items = [{ id: 1, buyer_name: "Maria" }, ...]
-    const items    = data.gifted_items || [];
-    const incoming = new Map(items.map(x => [Number(x.id), x.buyer_name || "Anônimo"]));
+    // data.gifted_ids = [1, 5, 12, ...]
+    const ids      = (data.gifted_ids || []).map(Number);
+    const incoming = new Set(ids);
 
     // Detecta novos presenteados desde o último ciclo
-    const newlyGifted = [...incoming.keys()].filter(id => !giftedMap.has(id));
+    const newlyGifted = [...incoming].filter(id => !giftedSet.has(id));
 
     if (newlyGifted.length > 0) {
-      giftedMap = incoming;
-      renderGrid(newlyGifted);   // passa os novos para animar
+      giftedSet = incoming;
+      renderGrid(newlyGifted);
       updateStats();
       newlyGifted.forEach(id => {
         const p = PRODUCTS.find(x => x.id === id);
-        const buyer = giftedMap.get(id);
-        if (p) showToast(`🎁 "${p.name}" foi presenteado por ${buyer}!`);
+        if (p) showToast(`🎁 "${p.name}" acabou de ser presenteado!`);
       });
     } else {
-      giftedMap = incoming;
+      giftedSet = incoming;
       updateStats();
     }
 
-    const now = new Date().toLocaleTimeString("pt-BR", {hour:"2-digit",minute:"2-digit"});
+    const now = new Date().toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"});
     setSyncState("ok", `Atualizado às ${now}`);
   } catch (err) {
     console.warn("Polling falhou:", err);
@@ -81,15 +85,14 @@ function startPolling() {
   fetchGiftedStatus(); // imediato na carga
   pollTimer = setInterval(fetchGiftedStatus, CONFIG.POLL_INTERVAL_MS);
 }
- 
+
 /* ══════════════════════════════════════════════════
    🛒  CHECKOUT — chama o backend e redireciona
    ══════════════════════════════════════════════════ */
 async function openCheckout(id) {
   const p = PRODUCTS.find(x => x.id === id);
-  if (!p || giftedMap.has(id)) return;
+  if (!p || giftedSet.has(id)) return;
 
-  // Mostra loading no botão
   const btn = document.querySelector(`#card-${id} .btn-gift`);
   if (btn) btn.classList.add("loading");
 
@@ -102,7 +105,6 @@ async function openCheckout(id) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    // data.checkout_url = URL do checkout gerado pelo backend
     if (data.checkout_url) {
       if (CONFIG.OPEN_IN_NEW_TAB) {
         window.open(data.checkout_url, "_blank");
@@ -131,7 +133,7 @@ function setSyncState(state, label) {
 /* ── RENDER FILTERS ── */
 function renderFilters() {
   document.getElementById("filters").innerHTML = CATEGORIES.map(c =>
-    `<button class="filter-btn ${c.key===activeFilter?"active":""}" onclick="setFilter('${c.key}')">
+    `<button class="filter-btn ${c.key === activeFilter ? "active" : ""}" onclick="setFilter('${c.key}')">
        <span>${c.emoji}</span> ${c.key}
      </button>`
   ).join("");
@@ -144,11 +146,10 @@ function renderGrid(newlyGifted = []) {
     : PRODUCTS.filter(p => p.cat === activeFilter);
 
   document.getElementById("grid").innerHTML = list.map(p => {
-    const gifted  = giftedMap.has(p.id);
-    const buyer   = giftedMap.get(p.id);
-    const isNew   = newlyGifted.includes(p.id);
+    const gifted = giftedSet.has(p.id);
+    const isNew  = newlyGifted.includes(p.id);
     return `
-      <div class="card ${gifted?"gifted":""} ${isNew?"just-gifted":""}" id="card-${p.id}">
+      <div class="card ${gifted ? "gifted" : ""} ${isNew ? "just-gifted" : ""}" id="card-${p.id}">
         ${isNew ? `<span class="new-gift-badge">PRESENTEADO!</span>` : ""}
         <img class="card-img" src="${imgUrl(p)}" alt="${p.name}" loading="lazy"
              onerror="this.src='https://images.unsplash.com/photo-1556909172-8c2f1b2d7e52?w=400&h=300&fit=crop'"/>
@@ -156,12 +157,9 @@ function renderGrid(newlyGifted = []) {
           <span class="card-category">${p.cat}</span>
           <span class="card-name">${p.name}</span>
           <div class="card-footer">
-            <span class="card-price">R$&nbsp;${p.price.toFixed(2).replace(".",",")}</span>
+            <span class="card-price">R$&nbsp;${p.price.toFixed(2).replace(".", ",")}</span>
             ${gifted
-              ? `<div class="gifted-info">
-                   <span class="btn-gifted">✓ Presenteado</span>
-                   <span class="buyer-name">🎁 ${buyer}</span>
-                 </div>`
+              ? `<span class="btn-gifted">✓ Presenteado</span>`
               : `<button class="btn-gift" onclick="openCheckout(${p.id})">
                    <span class="spinner"></span>
                    <span class="btn-label">Presentear</span>
@@ -172,10 +170,11 @@ function renderGrid(newlyGifted = []) {
       </div>`;
   }).join("");
 }
+
 /* ── STATS ── */
 function updateStats() {
   const total  = PRODUCTS.length;
-  const gifted = giftedMap.size;
+  const gifted = giftedSet.size;
   document.getElementById("stat-total").textContent     = total;
   document.getElementById("stat-available").textContent = total - gifted;
   document.getElementById("stat-gifted").textContent    = gifted;
@@ -207,5 +206,3 @@ renderFilters();
 renderGrid();
 updateStats();
 startPolling();
-</script>
-

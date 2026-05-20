@@ -63,7 +63,7 @@
   .card { background: var(--bg-card); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); transition: box-shadow .2s, transform .2s; display: flex; flex-direction: column; }
   .card:hover { box-shadow: 0 8px 28px rgba(44,31,18,.12); transform: translateY(-2px); }
   .card.gifted { opacity: .7; }
-  .card-img { width: 100%; aspect-ratio: 4/3; object-fit: contain; background: #F5EFE6; padding: 8px; }
+  .card-img { width: 100%; aspect-ratio: 1/1; object-fit: contain; background: #F5EFE6; padding: 8px; }
   .card-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
   .card-category { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
   .card-name { font-size: 14px; font-weight: 700; color: var(--brown); line-height: 1.35; flex: 1; }

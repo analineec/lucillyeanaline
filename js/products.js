@@ -1,4 +1,5 @@
 /* ── PRODUTOS ── */
+
 const PRODUCTS = [
   {id:1,  name:"Air fryer compacta",                price:250, cat:"Cozinha"},
   {id:2,  name:"Cafeteira elétrica",                price:180, cat:"Cozinha"},

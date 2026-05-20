@@ -79,7 +79,7 @@ const PRODUCTS = [
   {id:76, name:"Conjunto refratários cerâmica",     price:250, cat:"Cozinha"},
   {id:77, name:"Kit formas air fryer",              price:60,  cat:"Cozinha"},
   {id:78, name:"Escorredor de alimentos retrátil",  price:50,  cat:"Cozinha"},
-  {id:79, name:"Cuscuzeira elétrica",               price:250, cat:"Cozinha"},
+  {id:79, name:"Bandeija redonda aperitivos",               price:250, cat:"Cozinha"},
   {id:80, name:"Porta-frios hermético",             price:50,  cat:"Cozinha"},
   {id:81, name:"Suporte para xícaras suspenso",     price:60,  cat:"Cozinha"},
   {id:82, name:"Porta-cápsulas café",               price:90,  cat:"Cozinha"},

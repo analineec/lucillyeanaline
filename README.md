@@ -16,6 +16,20 @@ O projeto permite que convidados escolham presentes separados por ambientes da c
 - Exibição do nome de quem presenteou
 - Layout responsivo
 
+---
+
+
+## Tecnologias
+
+- Frontend
+- HTML
+- CSS
+- JavaScript
+- Mercado Pago API
+- PostgreSQL
+- Node.js
+- Express
+
 
 ---
 

@@ -45,27 +45,7 @@
 <!-- SCROLL TOP -->
 <button class="scroll-top" id="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 
-/* ── IMAGENS ── */
-const IMG_POOLS = {
-  "Cozinha":     ["1556909114-f6e7ad7d3136","1551218808-5a823df9f893","1565299624946-b28f40a0ae38",
-                  "1556905665-b3a0517b8b0c","1514190051997-0f6f39ca5cde","1547592180-85f173990554",
-                  "1565299585323-38d6b0865b47","1484723091739-30990a9bb2bd","1590779033100-9f60a05a1234",
-                  "1556909172-8c2f1b2d7e52","1558618666-fcd25c85cd64","1563453392212-326f5e854473"],
-  "Sala":        ["1555041469-db61040b2793","1583847268-bb522a938037","1586023492125-27b2c045efd3",
-                  "1567225477277-39827e2bfe3b","1524758631624-e2822132143d","1560448204-603b3090a44b"],
-  "Quarto":      ["1540518614846-7aded73a2869","1616594039964-ae9021a400a0","1505693314120-0d443867891c",
-                  "1560448205-4d9b3e6bb6db","1522771739844-6a9f6a5f1060","1617325247935-b651a4df2a1d"],
-  "Banheiro":    ["1552321554-5fffe8ca57ef","1620626011761-47a37a821af3","1584622650111-993a426fbf0a",
-                  "1552321554-5fffe8ca57ef","1620626011761-47a37a821af3","1584622650111-993a426fbf0a"],
-  "Lavanderia":  ["1558618666-fcd25c85cd64","1563453392212-326f5e854473","1545173168-9f1f6498b4c1",
-                  "1558618666-fcd25c85cd64","1563453392212-326f5e854473","1545173168-9f1f6498b4c1"],
-  "Organização": ["1558618047-3c8c76ca7d01","1586023492125-27b2c045efd3","1582058091522-381e2b9fffff",
-                  "1558618047-3c8c76ca7d01","1586023492125-27b2c045efd3","1582058091522-381e2b9fffff"],
-};
-function imgUrl(p) {
-  const pool = IMG_POOLS[p.cat] || IMG_POOLS["Cozinha"];
-  return `https://images.unsplash.com/photo-${pool[(p.id-1) % pool.length]}?w=400&h=300&fit=crop&auto=format`;
-}
+<!-- PRODUTOS -->
 <script src="js/products.js"></script>
 <script src="js/app.js"></script>
 </body>

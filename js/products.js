@@ -64,7 +64,7 @@ const PRODUCTS = [
   {id:61, name:"Paneleiro de cozinha",              price:220, cat:"Cozinha"},
   {id:62, name:"Panela elétrica multifuncional",    price:300, cat:"Cozinha"},
   {id:63, name:"Pipoqueira elétrica",               price:180, cat:"Cozinha"},
-  {id:64, name:"Escorredor de arroz inox",          price:60,  cat:"Cozinha"},
+  {id:64, name:"Iogurteira elétrica",          price:60,  cat:"Cozinha"},
   {id:65, name:"Kit churrasco inox",                price:250, cat:"Cozinha"},
   {id:66, name:"Tábua churrasco madeira",           price:120, cat:"Cozinha"},
   {id:67, name:"Conjunto de panelas de vidro",      price:300, cat:"Cozinha"},

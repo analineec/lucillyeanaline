@@ -7,7 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css"/>
+<!-- SDK do Mercado Pago (Payment Brick) -->
+<script src="https://sdk.mercadopago.com/js/v2"></script>
 </head>
 <body>
 
@@ -39,16 +41,34 @@
   <div class="grid" id="grid"></div>
 </main>
 
+<!-- MODAL DE PAGAMENTO -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-header">
+      <p class="modal-eyebrow">🎁 Presentear</p>
+      <h2 class="modal-product-name" id="modal-product-name"></h2>
+      <p class="modal-product-price" id="modal-product-price"></p>
+    </div>
+    <!-- Loading enquanto o Brick carrega -->
+    <div class="modal-brick-loading" id="modal-brick-loading">
+      <div class="modal-spinner"></div>
+      <span>Carregando formas de pagamento...</span>
+    </div>
+    <!-- Container onde o Payment Brick renderiza -->
+    <div id="modal-brick-container"></div>
+    <!-- Mensagem de sucesso ou erro -->
+    <div class="modal-message" id="modal-message" style="display:none"></div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <!-- SCROLL TOP -->
 <button class="scroll-top" id="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 
-<!-- PRODUTOS -->
-  
 <script src="js/products.js"></script>
 <script src="js/app.js"></script>
-  
 </body>
 </html>

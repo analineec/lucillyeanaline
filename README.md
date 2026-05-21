@@ -1,9 +1,18 @@
-# Chá de Casa Nova Lucilly e Ana Aline 🏠🌈
+<div align="center">
 
-Um site desenvolvido para organizar e gerenciar os presentes do meu chá de casa nova.
+ <h1><b>Chá de Casa Nova</b><br><b>Lucilly e Ana Aline 🏠🌈</b></h1></b>
 
-O projeto permite que convidados escolham presentes separados por ambientes da casa, realizem o pagamento dentro do site e tenham o presente marcado automaticamente como presenteado após a confirmação do pagamento.
+</div>
 
+<br>
+
+<p align="center">
+  Um site desenvolvido para organizar e gerenciar os presentes do meu chá de casa nova.
+</p>
+
+<p align="center">
+  O projeto permite que convidados escolham presentes separados por ambientes da casa, realizem o pagamento dentro do site e tenham o presente marcado automaticamente como presenteado após a confirmação do pagamento.
+</p>
 
 ---
 

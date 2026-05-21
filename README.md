@@ -9,13 +9,13 @@ O projeto permite que convidados escolham presentes separados por ambientes da c
 
 ##  Funcionalidades
 
-- Lista de presentes organizada por ambientes
-- Integração com Mercado Pago
-- Confirmação automática via Webhook
-- Atualização automática dos presentes pagos
-- Exibição do nome de quem presenteou
-- Layout responsivo
-
+- Lista de presentes organizada por ambientes da casa
+- Integração com o Mercado Pago para pagamentos online
+- Confirmação automática de pagamentos via Webhook
+- Atualização automática dos presentes após a confirmação do pagamento
+- Presentes marcados automaticamente como “presenteados”, ficando indisponíveis para novos envios
+- Layout responsivo, compatível com celulares, tablets e computadores
+  
 ---
 
 

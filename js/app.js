@@ -3,7 +3,7 @@
    ══════════════════════════════════════════════════ */
 const CONFIG = {
   // URL do seu backend no Render
-  BACKEND_URL:      "https://cha-casa-nova-a0ey.onrender.com",
+  BACKEND_URL: "https://cha-casa-nova-a0ey.onrender.com",
   STATUS_ENDPOINT:  "/api/gifted",
   POLL_INTERVAL_MS: 10_000,
 };

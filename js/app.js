@@ -1,27 +1,18 @@
 /* ══════════════════════════════════════════════════
-   ⚙️  CONFIG — ajuste conforme seu backend
+   ⚙️  CONFIG
    ══════════════════════════════════════════════════ */
 const CONFIG = {
-  // Endpoint para abrir o checkout de um item:
-  // Receberá POST { id, name, price, cat } e deve retornar { checkout_url: "https://..." }
-  CHECKOUT_ENDPOINT: "/api/checkout",
-
-  // Endpoint para buscar quais IDs já foram pagos:
-  // Deve retornar { gifted_ids: [1, 5, 12, ...] }
-  STATUS_ENDPOINT: "/api/gifted",
-
-  // Intervalo de polling em milissegundos (padrão 10s)
+  // URL do seu backend no Render
+  BACKEND_URL:      "https://cha-casa-nova-a0ey.onrender.com",
+  STATUS_ENDPOINT:  "/api/gifted",
   POLL_INTERVAL_MS: 10_000,
-
-  // Se true, abre o checkout em nova aba; se false, redireciona na mesma
-  OPEN_IN_NEW_TAB: true,
 };
-/* ══════════════════════════════════════════════════ */
 
 /* ── STATE ── */
-let giftedSet    = new Set();   // Set<id> — preenchido pelo polling
-let activeFilter = "Todos";
-let pollTimer    = null;
+let giftedSet      = new Set();
+let activeFilter   = "Todos";
+let mpPublicKey    = null;
+let currentProduct = null;  // produto sendo presenteado agora
 
 const CATEGORIES = [
   {key:"Todos",                emoji:"🏠"},
@@ -36,30 +27,187 @@ const CATEGORIES = [
   {key:"Decoração",            emoji:"🖼️"},
 ];
 
-/* ══════════════════════════════════════════════════
-   🖼️  IMAGEM — gera URL consistente por produto
-   ══════════════════════════════════════════════════ */
-
+/* ── IMAGEM ── */
 function imgUrl(p) {
   return `images/${p.name}.jpg`;
 }
 
+/* ══════════════════════════════════════════════════
+   🔑  MERCADO PAGO — carrega a chave pública
+   ══════════════════════════════════════════════════ */
+async function loadPublicKey() {
+  try {
+    const res  = await fetch(`${CONFIG.BACKEND_URL}/api/public-key`);
+    const data = await res.json();
+    mpPublicKey = data.public_key;
+  } catch (err) {
+    console.warn("Não foi possível carregar a chave pública do MP:", err);
+  }
+}
 
 /* ══════════════════════════════════════════════════
-   🔁  POLLING — busca status a cada POLL_INTERVAL_MS
+   🛒  CHECKOUT TRANSPARENTE — Payment Brick
+   ══════════════════════════════════════════════════ */
+async function openCheckout(id) {
+  const p = PRODUCTS.find(x => x.id === id);
+  if (!p || giftedSet.has(id)) return;
+
+  currentProduct = p;
+  openModal(p);
+
+  // Carrega a chave pública se ainda não tiver
+  if (!mpPublicKey) await loadPublicKey();
+  if (!mpPublicKey) {
+    showModalError("Não foi possível conectar ao sistema de pagamento. Tente novamente.");
+    return;
+  }
+
+  // Cria a preferência no backend
+  let preferenceId;
+  try {
+    const res  = await fetch(`${CONFIG.BACKEND_URL}/api/create-preference`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ id: p.id, name: p.name, price: p.price, cat: p.cat }),
+    });
+    const data = await res.json();
+    preferenceId = data.preference_id;
+  } catch (err) {
+    showModalError("Erro ao iniciar o pagamento. Tente novamente.");
+    return;
+  }
+
+  // Inicializa o Payment Brick
+  try {
+    const mp = new MercadoPago(mpPublicKey, { locale: "pt-BR" });
+    const bricks = mp.bricks();
+
+    // Remove instância anterior se existir
+    if (window._brickController) {
+      await window._brickController.unmount();
+    }
+
+    document.getElementById("modal-brick-loading").style.display = "none";
+
+    window._brickController = await bricks.create("payment", "modal-brick-container", {
+      initialization: {
+        amount:       p.price,
+        preferenceId: preferenceId,
+      },
+      customization: {
+        paymentMethods: {
+          bankTransfer: "all",  // PIX
+          creditCard:   "all",
+          debitCard:    "all",
+        },
+        visual: {
+          style: { theme: "default" },
+          hideFormTitle: true,
+        },
+      },
+      callbacks: {
+        onReady: () => {
+          document.getElementById("modal-brick-loading").style.display = "none";
+        },
+        onSubmit: ({ formData }) => {
+          return new Promise(async (resolve, reject) => {
+            try {
+              const res = await fetch(`${CONFIG.BACKEND_URL}/api/process-payment`, {
+                method:  "POST",
+                headers: { "Content-Type": "application/json" },
+                body:    JSON.stringify({ formData, productId: currentProduct.id }),
+              });
+              const data = await res.json();
+
+              if (data.status === "approved") {
+                resolve();
+                showModalSuccess("Pagamento confirmado! Obrigada pelo presente! 🎁🌈");
+                giftedSet.add(currentProduct.id);
+                renderGrid();
+                updateStats();
+              } else if (data.status === "pending") {
+                resolve();
+                showModalSuccess("Pagamento recebido e em processamento! Obrigada! 🎁");
+              } else {
+                reject();
+                showModalError("Pagamento não aprovado. Verifique os dados e tente novamente.");
+              }
+            } catch (err) {
+              reject();
+              showModalError("Erro ao processar o pagamento. Tente novamente.");
+            }
+          });
+        },
+        onError: (err) => {
+          console.error("Brick error:", err);
+        },
+      },
+    });
+  } catch (err) {
+    console.error("Erro ao inicializar Brick:", err);
+    showModalError("Erro ao carregar o formulário de pagamento.");
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   🪟  MODAL
+   ══════════════════════════════════════════════════ */
+function openModal(p) {
+  document.getElementById("modal-product-name").textContent  = p.name;
+  document.getElementById("modal-product-price").textContent = `R$ ${p.price.toFixed(2).replace(".", ",")}`;
+  document.getElementById("modal-brick-loading").style.display = "flex";
+  document.getElementById("modal-brick-container").innerHTML   = "";
+  document.getElementById("modal-message").style.display       = "none";
+  document.getElementById("modal-overlay").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeModal() {
+  document.getElementById("modal-overlay").classList.remove("open");
+  document.body.style.overflow = "";
+  currentProduct = null;
+  if (window._brickController) {
+    window._brickController.unmount().catch(() => {});
+    window._brickController = null;
+  }
+}
+
+function showModalError(msg) {
+  const el = document.getElementById("modal-message");
+  el.className  = "modal-message error";
+  el.textContent = msg;
+  el.style.display = "block";
+  document.getElementById("modal-brick-loading").style.display = "none";
+}
+
+function showModalSuccess(msg) {
+  document.getElementById("modal-brick-container").innerHTML = "";
+  const el = document.getElementById("modal-message");
+  el.className  = "modal-message success";
+  el.textContent = msg;
+  el.style.display = "block";
+  document.getElementById("modal-brick-loading").style.display = "none";
+  // Fecha o modal automaticamente após 4s
+  setTimeout(closeModal, 4000);
+}
+
+// Fecha ao clicar fora do modal
+document.getElementById("modal-overlay").addEventListener("click", function(e) {
+  if (e.target === this) closeModal();
+});
+
+/* ══════════════════════════════════════════════════
+   🔁  POLLING
    ══════════════════════════════════════════════════ */
 async function fetchGiftedStatus() {
   setSyncState("syncing", "Atualizando lista...");
   try {
-    const res  = await fetch(CONFIG.STATUS_ENDPOINT);
+    const res  = await fetch(`${CONFIG.BACKEND_URL}${CONFIG.STATUS_ENDPOINT}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    // data.gifted_ids = [1, 5, 12, ...]
     const ids      = (data.gifted_ids || []).map(Number);
     const incoming = new Set(ids);
-
-    // Detecta novos presenteados desde o último ciclo
     const newlyGifted = [...incoming].filter(id => !giftedSet.has(id));
 
     if (newlyGifted.length > 0) {
@@ -84,52 +232,14 @@ async function fetchGiftedStatus() {
 }
 
 function startPolling() {
-  fetchGiftedStatus(); // imediato na carga
-  pollTimer = setInterval(fetchGiftedStatus, CONFIG.POLL_INTERVAL_MS);
-}
-
-/* ══════════════════════════════════════════════════
-   🛒  CHECKOUT — chama o backend e redireciona
-   ══════════════════════════════════════════════════ */
-async function openCheckout(id) {
-  const p = PRODUCTS.find(x => x.id === id);
-  if (!p || giftedSet.has(id)) return;
-
-  const btn = document.querySelector(`#card-${id} .btn-gift`);
-  if (btn) btn.classList.add("loading");
-
-  try {
-    const res = await fetch(CONFIG.CHECKOUT_ENDPOINT, {
-      method:  "POST",
-      headers: {"Content-Type": "application/json"},
-      body:    JSON.stringify({ id: p.id, name: p.name, price: p.price, cat: p.cat }),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-
-    if (data.checkout_url) {
-      if (CONFIG.OPEN_IN_NEW_TAB) {
-        window.open(data.checkout_url, "_blank");
-      } else {
-        window.location.href = data.checkout_url;
-      }
-    } else {
-      throw new Error("checkout_url não retornado");
-    }
-  } catch (err) {
-    console.error("Erro ao abrir checkout:", err);
-    showToast("❌ Não foi possível abrir o checkout. Tente novamente.");
-  } finally {
-    if (btn) btn.classList.remove("loading");
-  }
+  fetchGiftedStatus();
+  setInterval(fetchGiftedStatus, CONFIG.POLL_INTERVAL_MS);
 }
 
 /* ── SYNC BAR ── */
 function setSyncState(state, label) {
-  const dot = document.getElementById("sync-dot");
-  const lbl = document.getElementById("sync-label");
-  dot.className = `sync-dot ${state}`;
-  lbl.textContent = label;
+  document.getElementById("sync-dot").className  = `sync-dot ${state}`;
+  document.getElementById("sync-label").textContent = label;
 }
 
 /* ── RENDER FILTERS ── */

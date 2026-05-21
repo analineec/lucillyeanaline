@@ -21,15 +21,18 @@ O projeto permite que convidados escolham presentes separados por ambientes da c
 
 ## Tecnologias
 
-- Frontend
+#### Frontend
 - HTML
 - CSS
 - JavaScript
+- Vercel
+
+#### Backend
 - Mercado Pago API
 - PostgreSQL
 - Node.js
 - Express
-
+- Render
 
 ---
 
@@ -42,12 +45,10 @@ Escolhe um presente
 ↓
 Clica em "Presentear"
 ↓
-Checkout Mercado Pago é aberto
+Checkout transparente Mercado Pago é aberto
 ↓
 Pagamento realizado
 ↓
 Webhook recebe confirmação
 ↓
 Presente é marcado como presenteado
-↓
-Nome do convidado é registrado no presente

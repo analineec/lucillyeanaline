@@ -5,7 +5,6 @@ const fs         = require("fs");
 const path       = require("path");
 const { MercadoPagoConfig, Preference, Payment } = require("mercadopago");
 
-/* ── VALIDAÇÃO DE VARIÁVEIS ── */
 const required = ["MP_ACCESS_TOKEN", "MP_PUBLIC_KEY", "BACKEND_URL", "FRONTEND_URL"];
 required.forEach(key => {
   if (!process.env[key]) {
@@ -14,13 +13,11 @@ required.forEach(key => {
   }
 });
 
-/* ── MERCADO PAGO ── */
 const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN,
   options: { timeout: 10000 },
 });
 
-/* ── EXPRESS ── */
 const app = express();
 
 app.use(cors({
@@ -30,7 +27,6 @@ app.use(cors({
 
 app.use(express.json());
 
-/* ── DADOS (gifted.json) ── */
 const DATA_FILE = path.join(__dirname, "data/gifted.json");
 
 function readGifted() {
@@ -56,17 +52,14 @@ function markAsGifted(productId) {
   }
 }
 
-/* ── GET /api/gifted ── */
 app.get("/api/gifted", (req, res) => {
   res.json(readGifted());
 });
 
-/* ── GET /api/public-key ── */
 app.get("/api/public-key", (req, res) => {
   res.json({ public_key: process.env.MP_PUBLIC_KEY });
 });
 
-/* ── POST /api/create-preference ── */
 app.post("/api/create-preference", async (req, res) => {
   const { id, name, price } = req.body;
   if (!id || !name || !price) {
@@ -99,17 +92,15 @@ app.post("/api/create-preference", async (req, res) => {
   }
 });
 
-/* ── POST /api/process-payment ── */
 app.post("/api/process-payment", async (req, res) => {
   const { formData, productId } = req.body;
   if (!formData || !productId) {
     return res.status(400).json({ error: "Dados incompletos" });
   }
   try {
+    // Data de expiração: 24 horas a partir de agora
+    const expiration = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-// Data de expiração:24 horas a partir de agora
-   const expiration = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-   
     const payment = new Payment(client);
     const result = await payment.create({
       body: {
@@ -119,9 +110,7 @@ app.post("/api/process-payment", async (req, res) => {
         token:              formData.token        || undefined,
         installments:       formData.installments || 1,
         issuer_id:          formData.issuer_id    || undefined,
-
-        // Expiração de 24 horas para PIX
-
+        // Expiração de 24h para PIX
         date_of_expiration: expiration,
         metadata:           { product_id: productId },
         notification_url:   `${process.env.BACKEND_URL}/api/webhook`,
@@ -145,7 +134,6 @@ app.post("/api/process-payment", async (req, res) => {
   }
 });
 
-/* ── POST /api/webhook ── */
 app.post("/api/webhook", async (req, res) => {
   res.sendStatus(200);
   const { type, data } = req.body;
@@ -163,7 +151,6 @@ app.post("/api/webhook", async (req, res) => {
   }
 });
 
-/* ── HEALTH CHECK ── */
 app.get("/", (req, res) => res.json({ ok: true, service: "Cha de Casa Nova API" }));
 
 const PORT = process.env.PORT || 3000;

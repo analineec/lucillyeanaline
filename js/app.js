@@ -121,13 +121,23 @@ async function openCheckout(id) {
 
               if (data.status === "approved") {
                 resolve();
-                showModalSuccess("Pagamento confirmado! Obrigada pelo presente! 🎁🌈");
+                showModalSuccess("Pagamento confirmado! Você ajudou uma boiola! 🌈");
                 giftedSet.add(currentProduct.id);
                 renderGrid();
                 updateStats();
               } else if (data.status === "pending") {
                 resolve();
-                showModalSuccess("Pagamento recebido e em processamento! Obrigada! 🎁");
+//Pix pendente - mostra QRcode
+                 const po = data.point_of_interaction;
+                 const qr = poi?.transaction_data?.qr_code;
+                 const img = poi?.transaction_data?.qr_code_base64;
+
+                 if (qr || img) {
+                    showQrCode(qr, img);
+                    } else {
+                    showModalSuccess("Pix gerado!");
+                 }
+                
               } else {
                 reject();
                 showModalError("Pagamento não aprovado. Verifique os dados e tente novamente.");
@@ -147,6 +157,65 @@ async function openCheckout(id) {
     console.error("Erro ao inicializar Brick:", err);
     showModalError("Erro ao carregar o formulário de pagamento.");
   }
+}
+
+
+/* ══════════════════════════════════════════════════
+   🪟  QR CODE PIX
+   ══════════════════════════════════════════════════ */
+function showQrCode(qrCode, qrBase64) {
+    // Limpa o brick
+    document.getElementById("modal-brick-container").innerHTML = "";
+    document.getElementById("modal-brick-loading").style.display = "none";
+    document.getElementById("modal-message").style.display = "none";
+
+    const container = document.getElementById("modal-brick-container");
+
+    container.innerHTML = `
+        <div class="pix-container">
+            <p class="pix-title">🏦 Pague com PIX</p>
+
+            <p class="pix-subtitle">
+                Escaneie o QR Code ou copie o código.
+                Válido por <strong>24 horas</strong>.
+            </p>
+
+            ${qrBase64
+                ? `<img class="pix-qr"
+                        src="data:image/png;base64,${qrBase64}"
+                        alt="QR Code PIX"/>`
+                : ""
+            }
+
+            ${qrCode
+                ? `<div class="pix-copy-wrap">
+                        <textarea class="pix-code"
+                                  readonly
+                                  onclick="this.select()">${qrCode}</textarea>
+
+                        <button class="pix-copy-btn"
+                                onclick="copyPix('${qrCode}')">
+                            📋 Copiar código
+                        </button>
+                   </div>`
+                : ""
+            }
+
+            <p class="pix-info">
+                Após o pagamento, o presente será marcado automaticamente ✓
+            </p>
+        </div>
+    `;
+}
+
+function copyPix(code) {
+    navigator.clipboard.writeText(code)
+        .then(() => {
+            showToast("✅ Código PIX copiado!");
+        })
+        .catch(() => {
+            showToast("Selecione o código e copie manualmente.");
+        });
 }
 
 /* ══════════════════════════════════════════════════

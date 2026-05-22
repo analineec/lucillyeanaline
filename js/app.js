@@ -113,7 +113,7 @@ async function openCheckout(id) {
 
               if (data.status === "approved") {
                 resolve();
-                showModalSuccess("Pagamento confirmado! Você ajudou uma biola! 🌈");
+                showModalSuccess("Pagamento confirmado! Você ajudou uma boiola! 🌈");
                 giftedSet.add(currentProduct.id);
                 renderGrid();
                 updateStats();

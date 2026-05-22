@@ -113,7 +113,7 @@ async function openCheckout(id) {
 
               if (data.status === "approved") {
                 resolve();
-                showModalSuccess("✅ Pagamento confirmado! Obrigada pelo presente! 🎁🌈");
+                showModalSuccess("Pagamento confirmado! Você ajudou uma biola! 🌈");
                 giftedSet.add(currentProduct.id);
                 renderGrid();
                 updateStats();
@@ -128,7 +128,7 @@ async function openCheckout(id) {
                 if (qr || img) {
                   showQrCode(qr, img);
                 } else {
-                  showModalSuccess("🎁 PIX gerado! Verifique seu e-mail para concluir o pagamento.");
+                  showModalSuccess("PIX gerado! Verifique seu e-mail para concluir o pagamento.");
                 }
 
               } else {

@@ -106,6 +106,10 @@ app.post("/api/process-payment", async (req, res) => {
     return res.status(400).json({ error: "Dados incompletos" });
   }
   try {
+
+// Data de expiração:24 horas a partir de agora
+   const expiration = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+   
     const payment = new Payment(client);
     const result = await payment.create({
       body: {
@@ -115,6 +119,10 @@ app.post("/api/process-payment", async (req, res) => {
         token:              formData.token        || undefined,
         installments:       formData.installments || 1,
         issuer_id:          formData.issuer_id    || undefined,
+
+        // Expiração de 24 horas para PIX
+
+        date_of_expiration: expiration,
         metadata:           { product_id: productId },
         notification_url:   `${process.env.BACKEND_URL}/api/webhook`,
       },

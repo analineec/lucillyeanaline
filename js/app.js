@@ -26,11 +26,14 @@ const CATEGORIES = [
   {key:"Decoração",            emoji:"🖼️"},
 ];
 
+/* ── IMAGEM ── */
 function imgUrl(p) {
   return `images/${p.name}.jpg`;
 }
 
-/* ── CHAVE PÚBLICA MP ── */
+/* ══════════════════════════════════════════════════
+   🔑  MERCADO PAGO — chave pública
+   ══════════════════════════════════════════════════ */
 async function loadPublicKey() {
   try {
     const res  = await fetch(`${CONFIG.BACKEND_URL}/api/public-key`);
@@ -42,7 +45,7 @@ async function loadPublicKey() {
 }
 
 /* ══════════════════════════════════════════════════
-   🛒  CHECKOUT TRANSPARENTE — Payment Brick
+   🛒  CHECKOUT — abre modal com seleção de método
    ══════════════════════════════════════════════════ */
 async function openCheckout(id) {
   const p = PRODUCTS.find(x => x.id === id);
@@ -50,10 +53,67 @@ async function openCheckout(id) {
 
   currentProduct = p;
   openModal(p);
+  showPaymentMethodSelect();
+}
+
+/* ── Tela de seleção: PIX ou Cartão ── */
+function showPaymentMethodSelect() {
+  document.getElementById("modal-brick-loading").style.display = "none";
+  document.getElementById("modal-brick-container").innerHTML = `
+    <div class="method-select">
+      <p class="method-title">Como você quer pagar?</p>
+      <button class="method-btn method-pix" onclick="choosePix()">
+        <span class="method-icon">🔵</span>
+        <div>
+          <strong>PIX</strong>
+          <span>QR code na hora • Aprovação imediata</span>
+        </div>
+      </button>
+      <button class="method-btn method-card" onclick="chooseCard()">
+        <span class="method-icon">💳</span>
+        <div>
+          <strong>Cartão de crédito</strong>
+          <span>Em até 3x sem juros</span>
+        </div>
+      </button>
+    </div>`;
+}
+
+/* ── PIX: cria pagamento e exibe QR imediatamente ── */
+async function choosePix() {
+  document.getElementById("modal-brick-container").innerHTML = "";
+  document.getElementById("modal-brick-loading").style.display = "flex";
+
+  try {
+    const res  = await fetch(`${CONFIG.BACKEND_URL}/api/create-pix`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({
+        id:    currentProduct.id,
+        name:  currentProduct.name,
+        price: currentProduct.price,
+      }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error || "Erro ao gerar PIX");
+
+    document.getElementById("modal-brick-loading").style.display = "none";
+    showPixQrCode(data);
+  } catch (err) {
+    console.error(err);
+    showModalError("Não foi possível gerar o PIX. Tente novamente.");
+  }
+}
+
+/* ── Cartão: carrega o Payment Brick ── */
+async function chooseCard() {
+  document.getElementById("modal-brick-container").innerHTML = "";
+  document.getElementById("modal-brick-loading").style.display = "flex";
 
   if (!mpPublicKey) await loadPublicKey();
   if (!mpPublicKey) {
-    showModalError("Não foi possível conectar ao sistema de pagamento. Tente novamente.");
+    showModalError("Não foi possível conectar ao sistema de pagamento.");
     return;
   }
 
@@ -62,7 +122,12 @@ async function openCheckout(id) {
     const res  = await fetch(`${CONFIG.BACKEND_URL}/api/create-preference`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ id: p.id, name: p.name, price: p.price, cat: p.cat }),
+      body:    JSON.stringify({
+        id:    currentProduct.id,
+        name:  currentProduct.name,
+        price: currentProduct.price,
+        cat:   currentProduct.cat,
+      }),
     });
     const data = await res.json();
     preferenceId = data.preference_id;
@@ -76,21 +141,21 @@ async function openCheckout(id) {
     const bricks = mp.bricks();
 
     if (window._brickController) {
-      await window._brickController.unmount();
+      await window._brickController.unmount().catch(() => {});
     }
 
     document.getElementById("modal-brick-loading").style.display = "none";
 
     window._brickController = await bricks.create("payment", "modal-brick-container", {
       initialization: {
-        amount:       p.price,
+        amount:       currentProduct.price,
         preferenceId: preferenceId,
       },
       customization: {
         paymentMethods: {
-          bankTransfer: "all",  // PIX
-          creditCard:   "all",
-          debitCard:    "all",
+          creditCard:      "all",
+          debitCard:       "all",
+          maxInstallments: 3,
         },
         visual: {
           style: { theme: "default" },
@@ -104,7 +169,7 @@ async function openCheckout(id) {
         onSubmit: ({ formData }) => {
           return new Promise(async (resolve, reject) => {
             try {
-              const res = await fetch(`${CONFIG.BACKEND_URL}/api/process-payment`, {
+              const res  = await fetch(`${CONFIG.BACKEND_URL}/api/process-payment`, {
                 method:  "POST",
                 headers: { "Content-Type": "application/json" },
                 body:    JSON.stringify({ formData, productId: currentProduct.id }),
@@ -113,24 +178,13 @@ async function openCheckout(id) {
 
               if (data.status === "approved") {
                 resolve();
-                showModalSuccess("Pagamento confirmado! Você ajudou uma boiola! 🌈");
+                showModalSuccess("Pagamento confirmado! Você ajudou uma boiola! 🎁🌈");
                 giftedSet.add(currentProduct.id);
                 renderGrid();
                 updateStats();
-
               } else if (data.status === "pending") {
                 resolve();
-                // PIX pendente — mostra o QR Code
-                const poi = data.point_of_interaction;
-                const qr  = poi?.transaction_data?.qr_code;
-                const img = poi?.transaction_data?.qr_code_base64;
-
-                if (qr || img) {
-                  showQrCode(qr, img);
-                } else {
-                  showModalSuccess("PIX gerado! Verifique seu e-mail para concluir o pagamento.");
-                }
-
+                showModalSuccess("Pagamento recebido e em processamento! Obrigada! 🎁");
               } else {
                 reject();
                 showModalError("Pagamento não aprovado. Verifique os dados e tente novamente.");
@@ -141,9 +195,7 @@ async function openCheckout(id) {
             }
           });
         },
-        onError: (err) => {
-          console.error("Brick error:", err);
-        },
+        onError: (err) => console.error("Brick error:", err),
       },
     });
   } catch (err) {
@@ -153,49 +205,11 @@ async function openCheckout(id) {
 }
 
 /* ══════════════════════════════════════════════════
-   📱  QR CODE PIX
-   ══════════════════════════════════════════════════ */
-function showQrCode(qrCode, qrBase64) {
-  // Limpa o brick
-  document.getElementById("modal-brick-container").innerHTML = "";
-  document.getElementById("modal-brick-loading").style.display = "none";
-  document.getElementById("modal-message").style.display = "none";
-
-  const container = document.getElementById("modal-brick-container");
-  container.innerHTML = `
-    <div class="pix-container">
-      <p class="pix-title">🏦 Pague com PIX</p>
-      <p class="pix-subtitle">Escaneie o QR Code ou copie o código. Válido por <strong>24 horas</strong>.</p>
-      ${qrBase64
-        ? `<img class="pix-qr" src="data:image/png;base64,${qrBase64}" alt="QR Code PIX"/>`
-        : ""
-      }
-      ${qrCode
-        ? `<div class="pix-copy-wrap">
-             <textarea class="pix-code" readonly onclick="this.select()">${qrCode}</textarea>
-             <button class="pix-copy-btn" onclick="copyPix('${qrCode}')">📋 Copiar código</button>
-           </div>`
-        : ""
-      }
-      <p class="pix-info">Após o pagamento, o presente será marcado automaticamente ✓</p>
-    </div>
-  `;
-}
-
-function copyPix(code) {
-  navigator.clipboard.writeText(code).then(() => {
-    showToast("✅ Código PIX copiado!");
-  }).catch(() => {
-    showToast("Selecione o código e copie manualmente.");
-  });
-}
-
-/* ══════════════════════════════════════════════════
    🪟  MODAL
    ══════════════════════════════════════════════════ */
 function openModal(p) {
-  document.getElementById("modal-product-name").textContent    = p.name;
-  document.getElementById("modal-product-price").textContent   = `R$ ${p.price.toFixed(2).replace(".", ",")}`;
+  document.getElementById("modal-product-name").textContent  = p.name;
+  document.getElementById("modal-product-price").textContent = `R$ ${p.price.toFixed(2).replace(".", ",")}`;
   document.getElementById("modal-brick-loading").style.display = "flex";
   document.getElementById("modal-brick-container").innerHTML   = "";
   document.getElementById("modal-message").style.display       = "none";
@@ -214,21 +228,53 @@ function closeModal() {
 }
 
 function showModalError(msg) {
-  const el = document.getElementById("modal-message");
-  el.className     = "modal-message error";
-  el.textContent   = msg;
-  el.style.display = "block";
   document.getElementById("modal-brick-loading").style.display = "none";
+  const el = document.getElementById("modal-message");
+  el.className   = "modal-message error";
+  el.textContent = msg;
+  el.style.display = "block";
 }
 
 function showModalSuccess(msg) {
   document.getElementById("modal-brick-container").innerHTML = "";
-  const el = document.getElementById("modal-message");
-  el.className     = "modal-message success";
-  el.textContent   = msg;
-  el.style.display = "block";
   document.getElementById("modal-brick-loading").style.display = "none";
+  const el = document.getElementById("modal-message");
+  el.className   = "modal-message success";
+  el.textContent = msg;
+  el.style.display = "block";
   setTimeout(closeModal, 4000);
+}
+
+/* ── PIX QR CODE ── */
+function showPixQrCode(pix) {
+  document.getElementById("modal-brick-container").innerHTML = `
+    <div class="pix-container">
+      <p class="pix-title">QR Code PIX gerado! 🎉</p>
+      <p class="pix-subtitle">Escaneie com o app do seu banco ou copie o código.<br>Válido por <strong>24 horas</strong>.</p>
+      ${pix.qr_code_base64
+        ? `<img class="pix-qr" src="data:image/png;base64,${pix.qr_code_base64}" alt="QR Code PIX"/>`
+        : ""}
+      <div class="pix-copy-wrap">
+        <input class="pix-code" id="pix-code-input" value="${pix.qr_code}" readonly/>
+        <button class="pix-copy-btn" onclick="copyPix()">Copiar código</button>
+      </div>
+      <p class="pix-obs">✅ Após o pagamento, o presente será marcado automaticamente!</p>
+      <button class="pix-back-btn" onclick="showPaymentMethodSelect()">← Voltar</button>
+    </div>`;
+  document.getElementById("modal-brick-loading").style.display = "none";
+}
+
+function copyPix() {
+  const input = document.getElementById("pix-code-input");
+  navigator.clipboard.writeText(input.value).then(() => {
+    const btn = document.querySelector(".pix-copy-btn");
+    btn.textContent = "Copiado! ✓";
+    btn.style.background = "#388E3C";
+    setTimeout(() => {
+      btn.textContent = "Copiar código";
+      btn.style.background = "";
+    }, 2000);
+  });
 }
 
 document.getElementById("modal-overlay").addEventListener("click", function(e) {
@@ -277,8 +323,8 @@ function startPolling() {
 
 /* ── SYNC BAR ── */
 function setSyncState(state, label) {
-  document.getElementById("sync-dot").className     = `sync-dot ${state}`;
-  document.getElementById("sync-label").textContent = label;
+  document.getElementById("sync-dot").className      = `sync-dot ${state}`;
+  document.getElementById("sync-label").textContent  = label;
 }
 
 /* ── RENDER FILTERS ── */

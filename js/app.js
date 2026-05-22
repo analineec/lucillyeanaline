@@ -2,8 +2,7 @@
    ⚙️  CONFIG
    ══════════════════════════════════════════════════ */
 const CONFIG = {
-  // URL do seu backend no Render
-  BACKEND_URL: "https://cha-casa-nova-a0ey.onrender.com",
+  BACKEND_URL:      "https://cha-casa-nova-a0ey.onrender.com",
   STATUS_ENDPOINT:  "/api/gifted",
   POLL_INTERVAL_MS: 10_000,
 };
@@ -12,7 +11,7 @@ const CONFIG = {
 let giftedSet      = new Set();
 let activeFilter   = "Todos";
 let mpPublicKey    = null;
-let currentProduct = null;  // produto sendo presenteado agora
+let currentProduct = null;
 
 const CATEGORIES = [
   {key:"Todos",                emoji:"🏠"},
@@ -27,14 +26,11 @@ const CATEGORIES = [
   {key:"Decoração",            emoji:"🖼️"},
 ];
 
-/* ── IMAGEM ── */
 function imgUrl(p) {
   return `images/${p.name}.jpg`;
 }
 
-/* ══════════════════════════════════════════════════
-   🔑  MERCADO PAGO — carrega a chave pública
-   ══════════════════════════════════════════════════ */
+/* ── CHAVE PÚBLICA MP ── */
 async function loadPublicKey() {
   try {
     const res  = await fetch(`${CONFIG.BACKEND_URL}/api/public-key`);
@@ -55,14 +51,12 @@ async function openCheckout(id) {
   currentProduct = p;
   openModal(p);
 
-  // Carrega a chave pública se ainda não tiver
   if (!mpPublicKey) await loadPublicKey();
   if (!mpPublicKey) {
     showModalError("Não foi possível conectar ao sistema de pagamento. Tente novamente.");
     return;
   }
 
-  // Cria a preferência no backend
   let preferenceId;
   try {
     const res  = await fetch(`${CONFIG.BACKEND_URL}/api/create-preference`, {
@@ -77,12 +71,10 @@ async function openCheckout(id) {
     return;
   }
 
-  // Inicializa o Payment Brick
   try {
-    const mp = new MercadoPago(mpPublicKey, { locale: "pt-BR" });
+    const mp     = new MercadoPago(mpPublicKey, { locale: "pt-BR" });
     const bricks = mp.bricks();
 
-    // Remove instância anterior se existir
     if (window._brickController) {
       await window._brickController.unmount();
     }
@@ -121,23 +113,24 @@ async function openCheckout(id) {
 
               if (data.status === "approved") {
                 resolve();
-                showModalSuccess("Pagamento confirmado! Você ajudou uma boiola! 🌈");
+                showModalSuccess("✅ Pagamento confirmado! Obrigada pelo presente! 🎁🌈");
                 giftedSet.add(currentProduct.id);
                 renderGrid();
                 updateStats();
+
               } else if (data.status === "pending") {
                 resolve();
-//Pix pendente - mostra QRcode
-                 const po = data.point_of_interaction;
-                 const qr = poi?.transaction_data?.qr_code;
-                 const img = poi?.transaction_data?.qr_code_base64;
+                // PIX pendente — mostra o QR Code
+                const poi = data.point_of_interaction;
+                const qr  = poi?.transaction_data?.qr_code;
+                const img = poi?.transaction_data?.qr_code_base64;
 
-                 if (qr || img) {
-                    showQrCode(qr, img);
-                    } else {
-                    showModalSuccess("Pix gerado!");
-                 }
-                
+                if (qr || img) {
+                  showQrCode(qr, img);
+                } else {
+                  showModalSuccess("🎁 PIX gerado! Verifique seu e-mail para concluir o pagamento.");
+                }
+
               } else {
                 reject();
                 showModalError("Pagamento não aprovado. Verifique os dados e tente novamente.");
@@ -159,71 +152,50 @@ async function openCheckout(id) {
   }
 }
 
-
 /* ══════════════════════════════════════════════════
-   🪟  QR CODE PIX
+   📱  QR CODE PIX
    ══════════════════════════════════════════════════ */
 function showQrCode(qrCode, qrBase64) {
-    // Limpa o brick
-    document.getElementById("modal-brick-container").innerHTML = "";
-    document.getElementById("modal-brick-loading").style.display = "none";
-    document.getElementById("modal-message").style.display = "none";
+  // Limpa o brick
+  document.getElementById("modal-brick-container").innerHTML = "";
+  document.getElementById("modal-brick-loading").style.display = "none";
+  document.getElementById("modal-message").style.display = "none";
 
-    const container = document.getElementById("modal-brick-container");
-
-    container.innerHTML = `
-        <div class="pix-container">
-            <p class="pix-title">🏦 Pague com PIX</p>
-
-            <p class="pix-subtitle">
-                Escaneie o QR Code ou copie o código.
-                Válido por <strong>24 horas</strong>.
-            </p>
-
-            ${qrBase64
-                ? `<img class="pix-qr"
-                        src="data:image/png;base64,${qrBase64}"
-                        alt="QR Code PIX"/>`
-                : ""
-            }
-
-            ${qrCode
-                ? `<div class="pix-copy-wrap">
-                        <textarea class="pix-code"
-                                  readonly
-                                  onclick="this.select()">${qrCode}</textarea>
-
-                        <button class="pix-copy-btn"
-                                onclick="copyPix('${qrCode}')">
-                            📋 Copiar código
-                        </button>
-                   </div>`
-                : ""
-            }
-
-            <p class="pix-info">
-                Após o pagamento, o presente será marcado automaticamente ✓
-            </p>
-        </div>
-    `;
+  const container = document.getElementById("modal-brick-container");
+  container.innerHTML = `
+    <div class="pix-container">
+      <p class="pix-title">🏦 Pague com PIX</p>
+      <p class="pix-subtitle">Escaneie o QR Code ou copie o código. Válido por <strong>24 horas</strong>.</p>
+      ${qrBase64
+        ? `<img class="pix-qr" src="data:image/png;base64,${qrBase64}" alt="QR Code PIX"/>`
+        : ""
+      }
+      ${qrCode
+        ? `<div class="pix-copy-wrap">
+             <textarea class="pix-code" readonly onclick="this.select()">${qrCode}</textarea>
+             <button class="pix-copy-btn" onclick="copyPix('${qrCode}')">📋 Copiar código</button>
+           </div>`
+        : ""
+      }
+      <p class="pix-info">Após o pagamento, o presente será marcado automaticamente ✓</p>
+    </div>
+  `;
 }
 
 function copyPix(code) {
-    navigator.clipboard.writeText(code)
-        .then(() => {
-            showToast("✅ Código PIX copiado!");
-        })
-        .catch(() => {
-            showToast("Selecione o código e copie manualmente.");
-        });
+  navigator.clipboard.writeText(code).then(() => {
+    showToast("✅ Código PIX copiado!");
+  }).catch(() => {
+    showToast("Selecione o código e copie manualmente.");
+  });
 }
 
 /* ══════════════════════════════════════════════════
    🪟  MODAL
    ══════════════════════════════════════════════════ */
 function openModal(p) {
-  document.getElementById("modal-product-name").textContent  = p.name;
-  document.getElementById("modal-product-price").textContent = `R$ ${p.price.toFixed(2).replace(".", ",")}`;
+  document.getElementById("modal-product-name").textContent    = p.name;
+  document.getElementById("modal-product-price").textContent   = `R$ ${p.price.toFixed(2).replace(".", ",")}`;
   document.getElementById("modal-brick-loading").style.display = "flex";
   document.getElementById("modal-brick-container").innerHTML   = "";
   document.getElementById("modal-message").style.display       = "none";
@@ -243,8 +215,8 @@ function closeModal() {
 
 function showModalError(msg) {
   const el = document.getElementById("modal-message");
-  el.className  = "modal-message error";
-  el.textContent = msg;
+  el.className     = "modal-message error";
+  el.textContent   = msg;
   el.style.display = "block";
   document.getElementById("modal-brick-loading").style.display = "none";
 }
@@ -252,15 +224,13 @@ function showModalError(msg) {
 function showModalSuccess(msg) {
   document.getElementById("modal-brick-container").innerHTML = "";
   const el = document.getElementById("modal-message");
-  el.className  = "modal-message success";
-  el.textContent = msg;
+  el.className     = "modal-message success";
+  el.textContent   = msg;
   el.style.display = "block";
   document.getElementById("modal-brick-loading").style.display = "none";
-  // Fecha o modal automaticamente após 4s
   setTimeout(closeModal, 4000);
 }
 
-// Fecha ao clicar fora do modal
 document.getElementById("modal-overlay").addEventListener("click", function(e) {
   if (e.target === this) closeModal();
 });
@@ -275,8 +245,8 @@ async function fetchGiftedStatus() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    const ids      = (data.gifted_ids || []).map(Number);
-    const incoming = new Set(ids);
+    const ids         = (data.gifted_ids || []).map(Number);
+    const incoming    = new Set(ids);
     const newlyGifted = [...incoming].filter(id => !giftedSet.has(id));
 
     if (newlyGifted.length > 0) {
@@ -307,7 +277,7 @@ function startPolling() {
 
 /* ── SYNC BAR ── */
 function setSyncState(state, label) {
-  document.getElementById("sync-dot").className  = `sync-dot ${state}`;
+  document.getElementById("sync-dot").className     = `sync-dot ${state}`;
   document.getElementById("sync-label").textContent = label;
 }
 

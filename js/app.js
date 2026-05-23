@@ -377,9 +377,10 @@ function renderFilters() {
 
 /* ── RENDER GRID ── */
 function renderGrid(newlyGifted = []) {
-  const list = activeFilter === "Todos"
-    ? PRODUCTS
-    : PRODUCTS.filter(p => p.cat === activeFilter);
+  const list = (activeFilter === "Todos"
+    ? [...PRODUCTS]
+    : PRODUCTS.filter(p => p.cat === activeFilter))
+    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
   document.getElementById("grid").innerHTML = list.map(p => {
     const gifted = giftedSet.has(p.id);

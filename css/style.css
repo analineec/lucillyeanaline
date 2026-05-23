@@ -467,3 +467,22 @@ body { background: var(--bg); font-family: 'Lato', sans-serif; color: var(--brow
   background: linear-gradient(135deg, #FFEBEE, #FFCDD2) !important;
   border: 1.5px solid #FFAB91;
 }
+
+/* FILTRO DE PREÇOS */
+.price-filters {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  max-width: 1300px; margin: 10px auto 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.price-btn {
+  display: inline-flex; align-items: center;
+  padding: 6px 16px; border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  font-family: 'Lato', sans-serif; font-size: 12px; font-weight: 700;
+  color: var(--brown-mid); cursor: pointer;
+  transition: all .18s; white-space: nowrap;
+}
+.price-btn:hover { border-color: var(--brown-mid); background: rgba(44,31,18,.05); }
+.price-btn.active { background: var(--brown-mid); border-color: var(--brown-mid); color: #fff; }

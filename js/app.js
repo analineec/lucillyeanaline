@@ -10,6 +10,7 @@ const CONFIG = {
 /* ── STATE ── */
 let giftedSet      = new Set();
 let activeFilter   = "Todos";
+let priceFilter    = "todos";
 let mpPublicKey    = null;
 let currentProduct = null;
 
@@ -24,6 +25,14 @@ const CATEGORIES = [
   {key:"Escritório",           emoji:"🗄️"},
   {key:"Ferramentas",          emoji:"⚒️"},
   {key:"Decoração",            emoji:"🖼️"},
+];
+
+const PRICE_RANGES = [
+  {key:"todos",    label:"Todos os preços"},
+  {key:"0-100",    label:"Até R$ 100"},
+  {key:"100-200",  label:"R$ 100 – 200"},
+  {key:"200-300",  label:"R$ 200 – 300"},
+  {key:"300+",     label:"R$ 300+"},
 ];
 
 /* ── IMAGEM ── */
@@ -375,11 +384,36 @@ function renderFilters() {
   ).join("");
 }
 
+/* ── RENDER PRICE FILTERS ── */
+function renderPriceFilters() {
+  document.getElementById("price-filters").innerHTML = PRICE_RANGES.map(r =>
+    `<button class="price-btn ${r.key === priceFilter ? "active" : ""}" onclick="setPriceFilter('${r.key}')">
+       ${r.label}
+     </button>`
+  ).join("");
+}
+
+function setPriceFilter(key) {
+  priceFilter = key;
+  renderPriceFilters();
+  renderGrid();
+}
+
+function matchesPrice(p) {
+  if (priceFilter === "todos")   return true;
+  if (priceFilter === "0-100")   return p.price <= 100;
+  if (priceFilter === "100-200") return p.price > 100 && p.price <= 200;
+  if (priceFilter === "200-300") return p.price > 200 && p.price <= 300;
+  if (priceFilter === "300+")    return p.price >= 300;
+  return true;
+}
+
 /* ── RENDER GRID ── */
 function renderGrid(newlyGifted = []) {
   const list = (activeFilter === "Todos"
     ? [...PRODUCTS]
     : PRODUCTS.filter(p => p.cat === activeFilter))
+    .filter(p => matchesPrice(p))
     .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
   document.getElementById("grid").innerHTML = list.map(p => {
@@ -440,6 +474,7 @@ window.addEventListener("scroll", () => {
 
 /* ── INIT ── */
 renderFilters();
+renderPriceFilters();
 renderGrid();
 updateStats();
 startPolling();

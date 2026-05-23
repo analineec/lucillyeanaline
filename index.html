@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="css/style.css"/>
-<!-- SDK do Mercado Pago (Payment Brick) -->
 <script src="https://sdk.mercadopago.com/js/v2"></script>
 </head>
 <body>
@@ -34,6 +33,7 @@
 <!-- FILTERS -->
 <nav class="filters-wrap">
   <div class="filters" id="filters"></div>
+  <div class="price-filters" id="price-filters"></div>
 </nav>
 
 <!-- GRID -->
@@ -50,14 +50,11 @@
       <h2 class="modal-product-name" id="modal-product-name"></h2>
       <p class="modal-product-price" id="modal-product-price"></p>
     </div>
-    <!-- Loading enquanto o Brick carrega -->
     <div class="modal-brick-loading" id="modal-brick-loading">
       <div class="modal-spinner"></div>
-      <span>Carregando formas de pagamento...</span>
+      <span>Carregando...</span>
     </div>
-    <!-- Container onde o Payment Brick renderiza -->
     <div id="modal-brick-container"></div>
-    <!-- Mensagem de sucesso ou erro -->
     <div class="modal-message" id="modal-message" style="display:none"></div>
   </div>
 </div>

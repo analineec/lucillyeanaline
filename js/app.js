@@ -83,27 +83,40 @@ function showPaymentMethodSelect() {
 async function choosePix() {
   document.getElementById("modal-brick-container").innerHTML = "";
   document.getElementById("modal-brick-loading").style.display = "flex";
+  showLoadingMessage("Gerando seu PIX...");
 
-  try {
-    const res  = await fetch(`${CONFIG.BACKEND_URL}/api/create-pix`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({
-        id:    currentProduct.id,
-        name:  currentProduct.name,
-        price: currentProduct.price,
-      }),
-    });
-    const data = await res.json();
+  const MAX_RETRIES = 3;
+  let attempt = 0;
 
-    if (!res.ok) throw new Error(data.error || "Erro ao gerar PIX");
+  while (attempt < MAX_RETRIES) {
+    try {
+      attempt++;
+      if (attempt > 1) showLoadingMessage(`Conectando... (tentativa ${attempt}/${MAX_RETRIES})`);
 
-    document.getElementById("modal-brick-loading").style.display = "none";
-    showPixQrCode(data);
-  } catch (err) {
-    console.error(err);
-    showModalError("Não foi possível gerar o PIX. Tente novamente.");
+      const res  = await fetch(`${CONFIG.BACKEND_URL}/api/create-pix`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          id:    currentProduct.id,
+          name:  currentProduct.name,
+          price: currentProduct.price,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao gerar PIX");
+
+      document.getElementById("modal-brick-loading").style.display = "none";
+      showPixQrCode(data);
+      return;
+    } catch (err) {
+      console.warn(`Tentativa ${attempt} falhou:`, err);
+      if (attempt < MAX_RETRIES) {
+        await new Promise(r => setTimeout(r, 3000));
+      }
+    }
   }
+
+  showModalError("Não foi possível gerar o PIX. Aguarde alguns segundos e tente novamente.");
 }
 
 /* ── Cartão: carrega o Payment Brick ── */
@@ -132,8 +145,26 @@ async function chooseCard() {
     const data = await res.json();
     preferenceId = data.preference_id;
   } catch (err) {
-    showModalError("Erro ao iniciar o pagamento. Tente novamente.");
-    return;
+    // Retry automático para cartão
+    console.warn("Erro ao criar preferência, tentando novamente...", err);
+    await new Promise(r => setTimeout(r, 3000));
+    try {
+      const res2  = await fetch(`${CONFIG.BACKEND_URL}/api/create-preference`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          id:    currentProduct.id,
+          name:  currentProduct.name,
+          price: currentProduct.price,
+          cat:   currentProduct.cat,
+        }),
+      });
+      const data2 = await res2.json();
+      preferenceId = data2.preference_id;
+    } catch (err2) {
+      showModalError("Não foi possível conectar ao servidor. Aguarde alguns segundos e tente novamente.");
+      return;
+    }
   }
 
   try {
@@ -178,7 +209,7 @@ async function chooseCard() {
 
               if (data.status === "approved") {
                 resolve();
-                showModalSuccess("Pagamento confirmado! Você ajudou uma boiola! 🎁🌈");
+                showModalSuccess("Pagamento confirmado! Obrigada pelo presente! 🎁🌈");
                 giftedSet.add(currentProduct.id);
                 renderGrid();
                 updateStats();
@@ -317,8 +348,16 @@ async function fetchGiftedStatus() {
 }
 
 function startPolling() {
+  // Acorda o backend imediatamente ao carregar a página
+  fetch(`${CONFIG.BACKEND_URL}/`).catch(() => {});
   fetchGiftedStatus();
   setInterval(fetchGiftedStatus, CONFIG.POLL_INTERVAL_MS);
+}
+
+/* ── LOADING MESSAGE ── */
+function showLoadingMessage(msg) {
+  const el = document.querySelector("#modal-brick-loading span");
+  if (el) el.textContent = msg;
 }
 
 /* ── SYNC BAR ── */

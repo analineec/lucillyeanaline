@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin — Chá de Casa Nova</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F5EFE6; --bg-card: #fff; --border: #E2D8CE;
+    --brown: #2C1F12; --brown-mid: #5C3D1E; --muted: #8C7B6A;
+    --gold: #C9956E; --green: #388E3C; --green-bg: #E8F5E9;
+    --red: #C62828; --red-bg: #FFEBEE; --radius: 14px;
+  }
+  body { background: var(--bg); font-family: 'Lato', sans-serif; color: var(--brown); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+  /* ── LOGIN ── */
+  #login-screen {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .login-box {
+    background: #fff; border-radius: 24px; padding: 40px 36px;
+    box-shadow: 0 16px 48px rgba(44,31,18,.12); width: 100%; max-width: 380px; text-align: center;
+  }
+  .login-box h1 { font-family: 'Playfair Display', serif; font-size: 26px; margin-bottom: 8px; }
+  .login-box p  { font-size: 14px; color: var(--muted); margin-bottom: 28px; }
+  .login-input {
+    width: 100%; padding: 14px 16px; border: 1.5px solid var(--border);
+    border-radius: 10px; font-family: 'Lato', sans-serif; font-size: 16px;
+    color: var(--brown); outline: none; margin-bottom: 12px; transition: border-color .18s;
+  }
+  .login-input:focus { border-color: var(--brown-mid); }
+  .login-btn {
+    width: 100%; padding: 14px; border-radius: 10px; border: none;
+    background: var(--brown); color: #fff; font-family: 'Lato', sans-serif;
+    font-size: 15px; font-weight: 700; cursor: pointer; transition: background .15s;
+  }
+  .login-btn:hover { background: var(--brown-mid); }
+  .login-error { color: var(--red); font-size: 13px; margin-top: 10px; display: none; }
+
+  /* ── DASHBOARD ── */
+  #dashboard { display: none; }
+
+  .dash-header {
+    background: var(--brown); color: #fff; padding: 20px 24px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+  .dash-header h1 { font-family: 'Playfair Display', serif; font-size: 20px; }
+  .dash-header p  { font-size: 12px; opacity: .7; margin-top: 2px; }
+  .btn-logout {
+    padding: 8px 16px; border-radius: 8px; border: 1.5px solid rgba(255,255,255,.4);
+    background: transparent; color: #fff; font-family: 'Lato', sans-serif;
+    font-size: 13px; font-weight: 700; cursor: pointer; transition: all .15s;
+  }
+  .btn-logout:hover { background: rgba(255,255,255,.1); }
+
+  .dash-body { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  /* ── CARDS DE RESUMO ── */
+  .summary-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 32px; }
+  @media (max-width: 600px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  .summary-card {
+    background: #fff; border-radius: var(--radius); padding: 20px 24px;
+    border: 1px solid var(--border); text-align: center;
+  }
+  .summary-card .s-icon  { font-size: 28px; margin-bottom: 8px; }
+  .summary-card .s-value { font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .summary-card .s-label { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+  .summary-card.green .s-value { color: var(--green); }
+  .summary-card.gold  .s-value { color: var(--gold); }
+
+  /* ── MÉTODOS ── */
+  .methods-row { display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
+  .method-tag {
+    padding: 6px 16px; border-radius: 999px; font-size: 13px; font-weight: 700;
+    background: var(--green-bg); color: var(--green); border: 1.5px solid #A5D6A7;
+  }
+
+  /* ── TABELA ── */
+  .table-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px; flex-wrap: wrap; gap: 10px;
+  }
+  .table-header h2 { font-family: 'Playfair Display', serif; font-size: 18px; }
+  .btn-refresh {
+    padding: 8px 18px; border-radius: 8px; border: 1.5px solid var(--border);
+    background: #fff; font-family: 'Lato', sans-serif; font-size: 13px; font-weight: 700;
+    color: var(--brown-mid); cursor: pointer; transition: all .15s;
+  }
+  .btn-refresh:hover { border-color: var(--brown); color: var(--brown); }
+
+  .payments-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+  .payments-table th { background: var(--brown); color: #fff; padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+  .payments-table td { padding: 13px 16px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+  .payments-table tr:last-child td { border-bottom: none; }
+  .payments-table tr:hover td { background: #fdf8f3; }
+
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700;
+  }
+  .badge.pix    { background: #E3F2FD; color: #1565C0; }
+  .badge.card   { background: var(--green-bg); color: var(--green); }
+  .badge.other  { background: #FFF3E0; color: #E65100; }
+
+  .status-ok  { color: var(--green); font-weight: 700; }
+  .status-pending { color: #F59E0B; font-weight: 700; }
+
+  /* Mobile: tabela com scroll */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius); }
+
+  .empty-table { text-align: center; padding: 48px; color: var(--muted); font-size: 15px; }
+
+  .last-update { font-size: 12px; color: var(--muted); margin-top: 16px; text-align: right; }
+
+  /* Loading */
+  .dash-loading { text-align: center; padding: 60px; color: var(--muted); }
+  .dash-spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--brown); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div style="font-size:36px;margin-bottom:12px">🎀</div>
+    <h1>Painel Admin</h1>
+    <p>Chá de Casa Nova — Lucilly & Ana Aline</p>
+    <input class="login-input" id="pwd-input" type="password"
+           placeholder="Senha de acesso" onkeydown="if(event.key==='Enter') doLogin()"/>
+    <button class="login-btn" onclick="doLogin()">Entrar</button>
+    <p class="login-error" id="login-error">❌ Senha incorreta. Tente novamente.</p>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="dash-header">
+    <div>
+      <h1>🎀 Painel Admin</h1>
+      <p>Chá de Casa Nova — Lucilly & Ana Aline</p>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">Sair</button>
+  </div>
+
+  <div class="dash-body">
+
+    <!-- Loading -->
+    <div class="dash-loading" id="dash-loading">
+      <div class="dash-spinner"></div>
+      <p>Carregando dados...</p>
+    </div>
+
+    <!-- Conteúdo -->
+    <div id="dash-content" style="display:none">
+
+      <!-- Resumo -->
+      <div class="summary-grid">
+        <div class="summary-card green">
+          <div class="s-icon">🎁</div>
+          <div class="s-value" id="s-total">—</div>
+          <div class="s-label">presentes comprados</div>
+        </div>
+        <div class="summary-card gold">
+          <div class="s-icon">💰</div>
+          <div class="s-value" id="s-valor">—</div>
+          <div class="s-label">total arrecadado</div>
+        </div>
+        <div class="summary-card">
+          <div class="s-icon">📦</div>
+          <div class="s-value" id="s-restam">—</div>
+          <div class="s-label">itens disponíveis</div>
+        </div>
+      </div>
+
+      <!-- Métodos -->
+      <div class="methods-row" id="methods-row"></div>
+
+      <!-- Tabela -->
+      <div class="table-header">
+        <h2>Histórico de pagamentos</h2>
+        <button class="btn-refresh" onclick="loadData()">↻ Atualizar</button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="payments-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Presente</th>
+              <th>Valor</th>
+              <th>Método</th>
+              <th>Pagador</th>
+              <th>E-mail</th>
+              <th>Data/Hora</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="payments-tbody">
+            <tr><td colspan="8" class="empty-table">Nenhum pagamento ainda.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="last-update" id="last-update"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const BACKEND_URL = "https://cha-casa-nova-a0ey.onrender.com";
+  const TOTAL_ITEMS = 200;
+  let adminPassword = "";
+
+  /* ── LOGIN ── */
+  function doLogin() {
+    const pwd = document.getElementById("pwd-input").value.trim();
+    if (!pwd) return;
+    adminPassword = pwd;
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("dashboard").style.display    = "block";
+    loadData();
+  }
+
+  function doLogout() {
+    adminPassword = "";
+    document.getElementById("login-screen").style.display = "flex";
+    document.getElementById("dashboard").style.display    = "none";
+    document.getElementById("pwd-input").value = "";
+    document.getElementById("login-error").style.display  = "none";
+  }
+
+  /* ── CARREGAR DADOS ── */
+  async function loadData() {
+    document.getElementById("dash-loading").style.display  = "block";
+    document.getElementById("dash-content").style.display  = "none";
+
+    try {
+      const res  = await fetch(`${BACKEND_URL}/api/admin/summary`, {
+        headers: { "x-admin-password": adminPassword },
+      });
+
+      if (res.status === 401) {
+        document.getElementById("login-screen").style.display = "flex";
+        document.getElementById("dashboard").style.display    = "none";
+        document.getElementById("login-error").style.display  = "block";
+        document.getElementById("pwd-input").value = "";
+        return;
+      }
+
+      const data = await res.json();
+      renderDashboard(data);
+
+    } catch (err) {
+      console.error(err);
+      document.getElementById("dash-loading").innerHTML =
+        `<p style="color:#C62828">❌ Erro ao conectar ao servidor. Tente novamente.</p>`;
+    }
+  }
+
+  /* ── RENDERIZAR ── */
+  function renderDashboard(data) {
+    // Resumo
+    document.getElementById("s-total").textContent  = data.total_presenteados;
+    document.getElementById("s-valor").textContent  =
+      `R$ ${Number(data.total_arrecadado).toFixed(2).replace(".", ",")}`;
+    document.getElementById("s-restam").textContent = TOTAL_ITEMS - data.total_presenteados;
+
+    // Métodos
+    const methodLabels = { pix:"PIX", credit_card:"Cartão de crédito", debit_card:"Cartão de débito" };
+    document.getElementById("methods-row").innerHTML =
+      Object.entries(data.por_metodo || {}).map(([method, count]) =>
+        `<span class="method-tag">${methodLabels[method] || method}: ${count}</span>`
+      ).join("") || `<span style="color:var(--muted);font-size:13px">Nenhum pagamento ainda.</span>`;
+
+    // Tabela
+    const payments = data.payments || [];
+    const tbody    = document.getElementById("payments-tbody");
+
+    if (payments.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" class="empty-table">🎁 Nenhum pagamento ainda.<br>Compartilhe o link do site!</td></tr>`;
+    } else {
+      tbody.innerHTML = payments.map((p, i) => {
+        const method = p.method === "pix" ? "PIX"
+          : p.method === "credit_card"    ? "Crédito"
+          : p.method === "debit_card"     ? "Débito"
+          : p.method;
+        const badgeClass = p.method === "pix" ? "pix" : p.method?.includes("card") ? "card" : "other";
+        const dt = new Date(p.paid_at);
+        const dateStr = dt.toLocaleDateString("pt-BR") + " " + dt.toLocaleTimeString("pt-BR", {hour:"2-digit",minute:"2-digit"});
+        return `<tr>
+          <td style="color:var(--muted);font-size:11px">${payments.length - i}</td>
+          <td><strong>${p.product_name}</strong></td>
+          <td style="font-family:'Playfair Display',serif;font-weight:700">R$ ${Number(p.amount).toFixed(2).replace(".",",")}</td>
+          <td><span class="badge ${badgeClass}">${method}</span></td>
+          <td>${p.payer_name}</td>
+          <td style="font-size:12px;color:var(--muted)">${p.payer_email}</td>
+          <td style="font-size:12px;white-space:nowrap">${dateStr}</td>
+          <td class="${p.status === 'approved' ? 'status-ok' : 'status-pending'}">
+            ${p.status === "approved" ? "✓ Pago" : "⏳ Pendente"}
+          </td>
+        </tr>`;
+      }).join("");
+    }
+
+    // Atualizado às
+    const now = new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+    document.getElementById("last-update").textContent = `Atualizado às ${now}`;
+
+    document.getElementById("dash-loading").style.display = "none";
+    document.getElementById("dash-content").style.display = "block";
+  }
+
+  // Foca o campo ao carregar
+  window.onload = () => document.getElementById("pwd-input").focus();
+</script>
+</body>
+</html>

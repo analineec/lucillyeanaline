@@ -321,14 +321,11 @@ function setSyncState(state, label) {
 
 /* ── RENDER FILTERS ── */
 function renderFilters() {
-  document.getElementById("filters").innerHTML = CATEGORIES.map(c => {
-    const count = c.key === "Todos"
-      ? PRODUCTS.filter(p => !giftedSet.has(p.id)).length
-      : PRODUCTS.filter(p => catLabel(p.cat) === c.key && !giftedSet.has(p.id)).length;
-    return `<button class="filter-btn ${c.key === activeFilter ? "active" : ""}" onclick="setFilter('${c.key}')">
-        <span>${c.emoji}</span> ${c.key} <span class="filter-count">${count}</span>
-      </button>`;
-  }).join("");
+  document.getElementById("filters").innerHTML = CATEGORIES.map(c =>
+    `<button class="filter-btn ${c.key === activeFilter ? "active" : ""}" onclick="setFilter('${c.key}')">
+        <span>${c.emoji}</span> ${c.key}
+      </button>`
+  ).join("");
 }
 
 

@@ -11,9 +11,7 @@ const CONFIG = {
 /* ── STATE ── */
 let giftedSet      = new Set();
 let activeFilter   = "Todos";
-let priceFilter    = "todos";
 let sortOrder      = "az";
-let searchQuery    = "";
 let mpPublicKey    = null;
 let currentProduct = null;
 
@@ -33,14 +31,6 @@ const CATEGORIES = [
 // Mapeia nome antigo para novo (para não quebrar os produtos)
 const CAT_MAP = { "Sala de Estar/Jantar": "Sala & Jantar" };
 function catLabel(cat) { return CAT_MAP[cat] || cat; }
-
-const PRICE_RANGES = [
-  {key:"todos",   label:"Todos os preços"},
-  {key:"0-100",   label:"Até R$ 100"},
-  {key:"100-200", label:"R$ 100–200"},
-  {key:"200-300", label:"R$ 200–300"},
-  {key:"300+",    label:"R$ 300+"},
-];
 
 const SORT_OPTIONS = [
   {key:"az",    label:"A–Z"},
@@ -329,12 +319,6 @@ function setSyncState(state, label) {
   document.getElementById("sync-label").textContent = label;
 }
 
-/* ── SEARCH ── */
-function onSearch(val) {
-  searchQuery = val.trim().toLowerCase();
-  renderGrid();
-}
-
 /* ── RENDER FILTERS ── */
 function renderFilters() {
   document.getElementById("filters").innerHTML = CATEGORIES.map(c => {
@@ -347,23 +331,6 @@ function renderFilters() {
   }).join("");
 }
 
-/* ── RENDER PRICE FILTERS ── */
-function renderPriceFilters() {
-  document.getElementById("price-filters").innerHTML = PRICE_RANGES.map(r =>
-    `<button class="price-btn ${r.key === priceFilter ? "active" : ""}" onclick="setPriceFilter('${r.key}')">${r.label}</button>`
-  ).join("");
-}
-
-function setPriceFilter(key) { priceFilter = key; renderPriceFilters(); renderGrid(); }
-
-function matchesPrice(p) {
-  if (priceFilter === "todos")   return true;
-  if (priceFilter === "0-100")   return p.price <= 100;
-  if (priceFilter === "100-200") return p.price > 100 && p.price <= 200;
-  if (priceFilter === "200-300") return p.price > 200 && p.price <= 300;
-  if (priceFilter === "300+")    return p.price >= 300;
-  return true;
-}
 
 /* ── RENDER SORT ── */
 function renderSort() {
@@ -387,12 +354,6 @@ function renderGrid(newlyGifted = []) {
   let list = activeFilter === "Todos"
     ? [...PRODUCTS]
     : PRODUCTS.filter(p => catLabel(p.cat) === activeFilter);
-
-  list = list.filter(p => matchesPrice(p));
-
-  if (searchQuery) {
-    list = list.filter(p => p.name.toLowerCase().includes(searchQuery));
-  }
 
   list = applySort(list);
 
@@ -434,9 +395,8 @@ function renderGrid(newlyGifted = []) {
 }
 
 function clearFilters() {
-  activeFilter = "Todos"; priceFilter = "todos"; searchQuery = ""; sortOrder = "az";
-  document.getElementById("search-input").value = "";
-  renderFilters(); renderPriceFilters(); renderSort(); renderGrid();
+  activeFilter = "Todos"; sortOrder = "az";
+  renderFilters(); renderSort(); renderGrid();
 }
 
 /* ── STATS ── */
@@ -449,7 +409,7 @@ function updateStats() {
 }
 
 /* ── FILTER ── */
-function setFilter(key) { activeFilter = key; renderFilters(); renderPriceFilters(); renderGrid(); }
+function setFilter(key) { activeFilter = key; renderFilters(); renderGrid(); }
 
 /* ── TOAST ── */
 function showToast(msg) {
@@ -466,7 +426,6 @@ window.addEventListener("scroll", () => {
 
 /* ── INIT ── */
 renderFilters();
-renderPriceFilters();
 renderSort();
 renderGrid();
 updateStats();

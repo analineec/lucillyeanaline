@@ -5,13 +5,10 @@ const fs         = require("fs");
 const path       = require("path");
 const { MercadoPagoConfig, Preference, Payment } = require("mercadopago");
 
-/* ── VALIDAÇÃO DE VARIÁVEIS ── */
-const required = ["MP_ACCESS_TOKEN", "MP_PUBLIC_KEY", "BACKEND_URL", "FRONTEND_URL"];
+/* ── VALIDAÇÃO ── */
+const required = ["MP_ACCESS_TOKEN", "MP_PUBLIC_KEY", "BACKEND_URL", "FRONTEND_URL", "ADMIN_PASSWORD"];
 required.forEach(key => {
-  if (!process.env[key]) {
-    console.error(`Variável de ambiente ausente: ${key}`);
-    process.exit(1);
-  }
+  if (!process.env[key]) { console.error(`Variável ausente: ${key}`); process.exit(1); }
 });
 
 /* ── MERCADO PAGO ── */
@@ -25,26 +22,64 @@ const app = express();
 app.use(cors({ origin: process.env.FRONTEND_URL, methods: ["GET", "POST"] }));
 app.use(express.json());
 
-/* ── DADOS (gifted.json) ── */
-const DATA_FILE = path.join(__dirname, "data/gifted.json");
+/* ══════════════════════════════════════════════════
+   💾  DADOS
+   ══════════════════════════════════════════════════ */
+const DATA_DIR      = path.join(__dirname, "data");
+const GIFTED_FILE   = path.join(DATA_DIR, "gifted.json");
+const PAYMENTS_FILE = path.join(DATA_DIR, "payments.json");
+
+function ensureDataDir() {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
 
 function readGifted() {
-  try { return JSON.parse(fs.readFileSync(DATA_FILE, "utf8")); }
+  try { return JSON.parse(fs.readFileSync(GIFTED_FILE, "utf8")); }
   catch { return { gifted_ids: [] }; }
 }
 
-function saveGifted(data) {
-  fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+function readPayments() {
+  try { return JSON.parse(fs.readFileSync(PAYMENTS_FILE, "utf8")); }
+  catch { return { payments: [] }; }
 }
 
-function markAsGifted(productId) {
-  const gifted = readGifted();
+function saveGifted(data) {
+  ensureDataDir();
+  fs.writeFileSync(GIFTED_FILE, JSON.stringify(data, null, 2));
+}
+
+function savePayments(data) {
+  ensureDataDir();
+  fs.writeFileSync(PAYMENTS_FILE, JSON.stringify(data, null, 2));
+}
+
+function markAsGifted(productId, paymentInfo = {}) {
   const id = Number(productId);
+
+  // Salva no gifted.json
+  const gifted = readGifted();
   if (!gifted.gifted_ids.includes(id)) {
     gifted.gifted_ids.push(id);
     saveGifted(gifted);
-    console.log(`Produto ${id} marcado como presenteado`);
+  }
+
+  // Salva detalhes do pagamento em payments.json
+  const paymentsData = readPayments();
+  const alreadyLogged = paymentsData.payments.some(p => p.product_id === id);
+  if (!alreadyLogged) {
+    paymentsData.payments.push({
+      product_id:    id,
+      product_name:  paymentInfo.product_name  || `Produto ${id}`,
+      amount:        paymentInfo.amount         || 0,
+      method:        paymentInfo.method         || "desconhecido",
+      payer_email:   paymentInfo.payer_email    || "—",
+      payer_name:    paymentInfo.payer_name     || "—",
+      payment_id:    paymentInfo.payment_id     || null,
+      status:        paymentInfo.status         || "approved",
+      paid_at:       new Date().toISOString(),
+    });
+    savePayments(paymentsData);
+    console.log(`✅ Produto ${id} (${paymentInfo.product_name}) — R$ ${paymentInfo.amount}`);
   }
 }
 
@@ -55,38 +90,63 @@ app.get("/api/gifted", (req, res) => res.json(readGifted()));
 app.get("/api/public-key", (req, res) => res.json({ public_key: process.env.MP_PUBLIC_KEY }));
 
 /* ══════════════════════════════════════════════════
+   🔒  GET /api/admin/summary
+   Protegido por senha — retorna resumo dos pagamentos
+   ══════════════════════════════════════════════════ */
+app.get("/api/admin/summary", (req, res) => {
+  const pwd = req.headers["x-admin-password"];
+  if (pwd !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json({ error: "Senha incorreta" });
+  }
+
+  const paymentsData = readPayments();
+  const payments     = paymentsData.payments || [];
+
+  const total_arrecadado = payments
+    .filter(p => p.status === "approved")
+    .reduce((sum, p) => sum + Number(p.amount), 0);
+
+  const por_metodo = payments.reduce((acc, p) => {
+    acc[p.method] = (acc[p.method] || 0) + 1;
+    return acc;
+  }, {});
+
+  res.json({
+    total_presenteados: payments.length,
+    total_arrecadado,
+    por_metodo,
+    payments: payments.sort((a, b) => new Date(b.paid_at) - new Date(a.paid_at)),
+  });
+});
+
+/* ══════════════════════════════════════════════════
    🔵 POST /api/create-pix
-   Cria pagamento PIX imediatamente e retorna o QR code
    ══════════════════════════════════════════════════ */
 app.post("/api/create-pix", async (req, res) => {
   const { id, name, price } = req.body;
-  if (!id || !name || !price) {
-    return res.status(400).json({ error: "Dados do produto incompletos" });
-  }
+  if (!id || !name || !price) return res.status(400).json({ error: "Dados incompletos" });
 
   const pixExpiration = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
   try {
     const payment = new Payment(client);
-    const result = await payment.create({
+    const result  = await payment.create({
       body: {
-        transaction_amount:  Number(price),
-        payment_method_id:   "pix",
-        description:         `Chá de Casa Nova — ${name}`,
-        date_of_expiration:  pixExpiration,
-        external_reference:  `product_${id}`,
-        metadata:            { product_id: id },
-        notification_url:    `${process.env.BACKEND_URL}/api/webhook`,
-        payer: {
-          email: "convidado@chadenova.com.br",
-        },
+        transaction_amount: Number(price),
+        payment_method_id:  "pix",
+        description:        `Chá de Casa Nova — ${name}`,
+        date_of_expiration: pixExpiration,
+        external_reference: `product_${id}`,
+        metadata:           { product_id: id, product_name: name },
+        notification_url:   `${process.env.BACKEND_URL}/api/webhook`,
+        payer: { email: "convidado@chadenova.com.br" },
       },
     });
 
     console.log(`PIX criado ${result.id} — produto ${id}`);
 
     const poi = result.point_of_interaction?.transaction_data;
-    if (!poi) throw new Error("QR code não retornado pelo MP");
+    if (!poi) throw new Error("QR code não retornado");
 
     res.json({
       payment_id:     result.id,
@@ -101,19 +161,16 @@ app.post("/api/create-pix", async (req, res) => {
 
 /* ══════════════════════════════════════════════════
    💳 POST /api/create-preference
-   Para pagamento com cartão via Payment Brick
    ══════════════════════════════════════════════════ */
 app.post("/api/create-preference", async (req, res) => {
   const { id, name, price } = req.body;
-  if (!id || !name || !price) {
-    return res.status(400).json({ error: "Dados do produto incompletos" });
-  }
+  if (!id || !name || !price) return res.status(400).json({ error: "Dados incompletos" });
 
   const expiration = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
   try {
     const preference = new Preference(client);
-    const result = await preference.create({
+    const result     = await preference.create({
       body: {
         items: [{
           id:          String(id),
@@ -123,13 +180,11 @@ app.post("/api/create-preference", async (req, res) => {
           unit_price:  Number(price),
           currency_id: "BRL",
         }],
-        // PCI: external_reference para correlacionar com seu sistema
-        external_reference:  `product_${id}`,
-        // PCI: statement_descriptor reduz chances de contestação
+        external_reference:   `product_${id}`,
         statement_descriptor: "CHA CASA NOVA",
-        metadata:            { product_id: id },
-        notification_url:    `${process.env.BACKEND_URL}/api/webhook`,
-        expiration_date_to:  expiration,
+        metadata:             { product_id: id, product_name: name },
+        notification_url:     `${process.env.BACKEND_URL}/api/webhook`,
+        expiration_date_to:   expiration,
         back_urls: {
           success: process.env.FRONTEND_URL,
           failure: process.env.FRONTEND_URL,
@@ -146,60 +201,84 @@ app.post("/api/create-preference", async (req, res) => {
 
 /* ══════════════════════════════════════════════════
    💳 POST /api/process-payment
-   Processa pagamento de cartão via Payment Brick
    ══════════════════════════════════════════════════ */
 app.post("/api/process-payment", async (req, res) => {
-  const { formData, productId } = req.body;
-  if (!formData || !productId) {
-    return res.status(400).json({ error: "Dados incompletos" });
-  }
+  const { formData, productId, productName, productPrice } = req.body;
+  if (!formData || !productId) return res.status(400).json({ error: "Dados incompletos" });
 
   try {
     const payment = new Payment(client);
-    const result = await payment.create({
+    const result  = await payment.create({
       body: {
         transaction_amount:  Number(formData.transaction_amount),
         payment_method_id:   formData.payment_method_id,
         description:         `Chá de Casa Nova — produto ${productId}`,
         external_reference:  `product_${productId}`,
         statement_descriptor: "CHA CASA NOVA",
-        payer:               formData.payer,
+        payer:               { ...formData.payer, email: formData.payer?.email || "convidado@chadenova.com.br" },
         token:               formData.token        || undefined,
         installments:        formData.installments || 1,
         issuer_id:           formData.issuer_id    || undefined,
-        metadata:            { product_id: productId },
+        metadata:            { product_id: productId, product_name: productName },
         notification_url:    `${process.env.BACKEND_URL}/api/webhook`,
       },
     });
 
     console.log(`Pagamento ${result.id} — status: ${result.status}`);
 
-    if (result.status === "approved") markAsGifted(productId);
+    if (result.status === "approved") {
+      markAsGifted(productId, {
+        product_name: productName || `Produto ${productId}`,
+        amount:       result.transaction_amount,
+        method:       result.payment_method_id,
+        payer_email:  result.payer?.email || "—",
+        payer_name:   result.payer?.first_name
+                        ? `${result.payer.first_name} ${result.payer.last_name || ""}`.trim()
+                        : "—",
+        payment_id:   result.id,
+        status:       result.status,
+      });
+    }
 
-    res.json({
-      status:        result.status,
-      status_detail: result.status_detail,
-    });
+    res.json({ status: result.status, status_detail: result.status_detail });
   } catch (err) {
     console.error("Erro ao processar pagamento:", err);
     res.status(500).json({ error: "Erro ao processar pagamento" });
   }
 });
 
-/* ── POST /api/webhook ── */
+/* ══════════════════════════════════════════════════
+   🔔 POST /api/webhook
+   ══════════════════════════════════════════════════ */
 app.post("/api/webhook", async (req, res) => {
   res.sendStatus(200);
   const { type, data } = req.body;
   if (type !== "payment" || !data?.id) return;
+
   try {
-    const payment = new Payment(client);
+    const payment     = new Payment(client);
     const paymentData = await payment.get({ id: data.id });
+
     console.log(`Webhook — payment ${data.id} status: ${paymentData.status}`);
+
     if (paymentData.status === "approved") {
-      // Tenta pegar product_id do metadata ou do external_reference
-      const productId = paymentData.metadata?.product_id
+      const productId   = paymentData.metadata?.product_id
         || paymentData.external_reference?.replace("product_", "");
-      if (productId) markAsGifted(productId);
+      const productName = paymentData.metadata?.product_name || `Produto ${productId}`;
+
+      if (productId) {
+        markAsGifted(productId, {
+          product_name: productName,
+          amount:       paymentData.transaction_amount,
+          method:       paymentData.payment_method_id,
+          payer_email:  paymentData.payer?.email || "—",
+          payer_name:   paymentData.payer?.first_name
+                          ? `${paymentData.payer.first_name} ${paymentData.payer.last_name || ""}`.trim()
+                          : "—",
+          payment_id:   paymentData.id,
+          status:       paymentData.status,
+        });
+      }
     }
   } catch (err) {
     console.error("Erro no webhook:", err);

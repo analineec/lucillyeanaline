@@ -158,7 +158,7 @@ async function chooseCard() {
           try {
             const res  = await fetch(`${CONFIG.BACKEND_URL}/api/process-payment`, {
               method:"POST", headers:{"Content-Type":"application/json"},
-              body: JSON.stringify({formData, productId:currentProduct.id}),
+              body: JSON.stringify({formData, productId:currentProduct.id, productName:currentProduct.name, productPrice:currentProduct.price}),
             });
             const data = await res.json();
             if (data.status === "approved") {

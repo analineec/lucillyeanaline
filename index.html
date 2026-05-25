@@ -37,20 +37,12 @@
 <nav class="filters-wrap">
   <div class="filters" id="filters"></div>
   <div class="filters-toolbar">
-    <div class="price-filters" id="price-filters"></div>
-    <div class="toolbar-right">
-      <div class="search-wrap">
-        <span class="search-icon">🔍</span>
-        <input class="search-input" id="search-input" type="text"
-               placeholder="Buscar presente..." oninput="onSearch(this.value)"/>
-      </div>
-      <select class="sort-select" id="sort-select" onchange="onSort(this.value)">
-        <option value="az">A – Z</option>
-        <option value="za">Z – A</option>
-        <option value="asc">Menor preço</option>
-        <option value="desc">Maior preço</option>
-      </select>
-    </div>
+    <select class="sort-select" id="sort-select" onchange="onSort(this.value)">
+      <option value="az">A – Z</option>
+      <option value="za">Z – A</option>
+      <option value="asc">Menor preço</option>
+      <option value="desc">Maior preço</option>
+    </select>
   </div>
 </nav>
 

@@ -19,7 +19,23 @@ const client = new MercadoPagoConfig({
 
 /* ── EXPRESS ── */
 const app = express();
-app.use(cors({ origin: process.env.FRONTEND_URL, methods: ["GET", "POST"] }));
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "https://sdk.mercadopago.com",
+  "https://www.mercadopago.com.br",
+  "https://www.mercadopago.com",
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Permite requisições sem origin (ex: Render health check, webhook)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.some(o => origin.startsWith(o))) return callback(null, true);
+    callback(null, true); // Em produção pode restringir aqui
+  },
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type", "x-admin-password"],
+}));
 app.use(express.json());
 
 /* ══════════════════════════════════════════════════

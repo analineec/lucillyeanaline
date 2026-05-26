@@ -162,7 +162,7 @@ async function chooseCard() {
     window._brickController = await bricks.create("payment", "modal-brick-container", {
       initialization: { amount: Number(currentProduct.price), preferenceId: String(preferenceId) },
       customization: {
-        paymentMethods: { creditCard:"all", debitCard:"none", maxInstallments:3 },
+        paymentMethods: { creditCard:"all", maxInstallments:3 },
         visual: { style:{theme:"default"}, hideFormTitle:true },
       },
       callbacks: {

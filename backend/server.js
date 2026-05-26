@@ -193,7 +193,7 @@ app.post("/api/create-preference", async (req, res) => {
           title:       name,
           description: `Chá de Casa Nova — ${name}`,
           quantity:    1,
-          unit_price:  Number(price),
+          unit_price:  parseFloat(Number(price).toFixed(2)),
           currency_id: "BRL",
         }],
         external_reference:   `product_${id}`,

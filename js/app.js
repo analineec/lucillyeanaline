@@ -148,7 +148,10 @@ async function chooseCard() {
   try {
     const mp = new MercadoPago(mpPublicKey, {locale:"pt-BR"});
     const bricks = mp.bricks();
-    if (window._brickController) await window._brickController.unmount().catch(() => {});
+    if (window._brickController && typeof window._brickController.unmount === "function") {
+      try { await window._brickController.unmount(); } catch(e) {}
+      window._brickController = null;
+    }
     document.getElementById("modal-brick-loading").style.display = "none";
 
     if (!preferenceId) {
@@ -157,7 +160,7 @@ async function chooseCard() {
     }
 
     window._brickController = await bricks.create("payment", "modal-brick-container", {
-      initialization: { amount: currentProduct.price, preferenceId },
+      initialization: { amount: Number(currentProduct.price), preferenceId: String(preferenceId) },
       customization: {
         paymentMethods: { creditCard:"all", debitCard:"none", maxInstallments:3 },
         visual: { style:{theme:"default"}, hideFormTitle:true },
@@ -212,7 +215,10 @@ function closeModal() {
   document.getElementById("modal-overlay").classList.remove("open");
   document.body.style.overflow = "";
   currentProduct = null;
-  if (window._brickController) { window._brickController.unmount().catch(()=>{}); window._brickController = null; }
+  if (window._brickController && typeof window._brickController.unmount === "function") {
+    try { window._brickController.unmount(); } catch(e) {}
+    window._brickController = null;
+  }
 }
 
 function showModalError(msg) {

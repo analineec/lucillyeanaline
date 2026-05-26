@@ -140,11 +140,21 @@ async function chooseCard() {
     }
   }
 
+  if (!preferenceId) {
+    showModalError("Não foi possível iniciar o pagamento. Tente novamente.");
+    return;
+  }
+
   try {
     const mp = new MercadoPago(mpPublicKey, {locale:"pt-BR"});
     const bricks = mp.bricks();
     if (window._brickController) await window._brickController.unmount().catch(() => {});
     document.getElementById("modal-brick-loading").style.display = "none";
+
+    if (!preferenceId) {
+      showModalError("Erro ao carregar dados do pagamento. Tente novamente.");
+      return;
+    }
 
     window._brickController = await bricks.create("payment", "modal-brick-container", {
       initialization: { amount: currentProduct.price, preferenceId },
@@ -315,8 +325,10 @@ function startPolling() {
 
 /* ── SYNC BAR ── */
 function setSyncState(state, label) {
-  document.getElementById("sync-dot").className     = `sync-dot ${state}`;
-  document.getElementById("sync-label").textContent = label;
+  const dot = document.getElementById("sync-dot");
+  const lbl = document.getElementById("sync-label");
+  if (dot) dot.className      = `sync-dot ${state}`;
+  if (lbl) lbl.textContent    = label;
 }
 
 /* ── RENDER FILTERS ── */

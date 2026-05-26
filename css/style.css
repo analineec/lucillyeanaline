@@ -41,14 +41,6 @@ body {
 .stat-number { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
 .stat-label { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
 
-/* ── SYNC ── */
-.sync-bar { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 20px; background: #FFF8F2; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted); }
-.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; transition: background .3s; flex-shrink: 0; }
-.sync-dot.syncing { background: #F59E0B; animation: pulse 1s infinite; }
-.sync-dot.ok      { background: #22C55E; }
-.sync-dot.error   { background: #EF4444; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-
 /* ── FILTERS ── */
 .filters-wrap {
   position: sticky; top: 0; z-index: 100;
